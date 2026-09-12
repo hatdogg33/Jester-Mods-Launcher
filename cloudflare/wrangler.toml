@@ -1,8 +1,0 @@
-name = "voidmod1"
-main = "src/index-kv.js"
-compatibility_date = "2026-09-09"
-account_id = "c4c077440918f89d35a7249f4237124e"
-
-[[kv_namespaces]]
-binding = "STATE"
-id = "e719ae14571745ff88f67b86205778ae"

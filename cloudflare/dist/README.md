@@ -1,1 +1,0 @@
-This folder contains the built output assets for the worker "voidmod1" generated at 2026-09-10T04:03:58.099Z.

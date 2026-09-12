@@ -1,8 +1,0 @@
-export function adminPage() {
-  return new Response(`<!doctype html><meta name="viewport" content="width=device-width">
-<title>voidmod1 admin</title><style>body{font:16px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem;background:#10141c;color:#e8edf5}input,textarea,button{font:inherit;padding:.6rem;margin:.3rem 0;width:100%;box-sizing:border-box}textarea{min-height:16rem;font-family:monospace}button{cursor:pointer;background:#477dff;color:white;border:0;border-radius:5px}.card{background:#192131;padding:1rem;margin:1rem 0;border-radius:8px}#status{white-space:pre-wrap}</style>
-<h1>voidmod1 admin</h1><div class="card"><label>Admin token</label><input id="token" type="password" autocomplete="current-password"><button onclick="save()">Save token</button></div>
-<div class="card"><h2>Public catalog</h2><p>Paste the unsigned catalog payload JSON.</p><textarea id="catalog">{"schema":1,"audience":"moodtools-standalone","modules":[]}</textarea><button onclick="publish()">Publish catalog</button></div>
-<div class="card"><h2>Result</h2><div id="status">Ready.</div></div>
-<script>const token=document.querySelector('#token'),status=document.querySelector('#status');token.value=sessionStorage.getItem('voidmod1-admin-token')||'';function save(){sessionStorage.setItem('voidmod1-admin-token',token.value);status.textContent='Token saved for this browser tab.'}async function publish(){try{const r=await fetch('/admin/catalog',{method:'POST',headers:{'content-type':'application/json','x-admin-token':token.value},body:document.querySelector('#catalog').value});status.textContent=await r.text()}catch(e){status.textContent=e.toString()}}</script>`, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
-}
