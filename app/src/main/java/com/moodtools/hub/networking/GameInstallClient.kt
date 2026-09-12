@@ -459,7 +459,7 @@ class GameInstallClient(private val context: Context) {
     }
 
     companion object {
-        private const val HOST = "jester.moodtools.workers.dev"
+        private const val HOST = "voidmod1.uncledrew697.workers.dev"
         private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
         private const val MAX_APKS_ENTRIES = 256
         private const val MAX_EXTRACTED_APKS_BYTES = 4L * 1024L * 1024L * 1024L

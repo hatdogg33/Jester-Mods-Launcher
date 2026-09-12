@@ -1,0 +1,109 @@
+name: Launcher Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-android:
+    name: Build Android APKs and Embed Modules
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    secrets:
+      ANDROID_STORE_FILE: ${ANDROID_STORE_FILE}
+      ANDROID_STORE_PASSWORD: ${ANDROID_STORE_PASSWORD}
+      ANDROID_KEY_ALIAS: ${ANDROID_KEY_ALIAS}
+      ANDROID_KEY_PASSWORD: ${ANDROID_KEY_PASSWORD}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK for Gradle
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Assemble root and nonroot release APKs
+        run: ./gradlew :app:assembleRootRelease :app:assembleNonrootRelease --no-daemon
+
+      - name: Build modules using build_modules.ps1
+        run: |
+          $root = Split-Path -Parent $PSCommandPath
+          $modules = Join-Path $root "modules"
+          $output = Join-Path $root "module-output"
+          if (-not (Test-Path -Path $modules)) {
+              throw "Missing modules directory: $modules"
+          }
+          if (-not (Test-Path -Path $output)) {
+              New-Item -ItemType Directory -Path $output | Out-Null
+          }
+          $moduleDirs = Get-ChildItem -Path $modules -Directory
+          foreach ($moduleDir in $moduleDirs) {
+              $name = $moduleDir.Name
+              $java = Join-Path $moduleDir.FullName "java"
+              $cpp = Join-Path $moduleDir.FullName "cpp"
+              $assets = Join-Path $moduleDir.FullName "assets"
+              $config = Join-Path $moduleDir.FullName "config.json"
+              $features = Join-Path $moduleDir.FullName "features.json"
+              if (-not ((Test-Path -Path $config) -and (Test-Path -Path $features) -and (Test-Path -Path $java) -and (Test-Path -Path $cpp))) {
+                  Write-Host "Skipping ${name}: config, features, java, or cpp directory missing"
+                  continue
+              }
+              if (-not (Test-Path -Path $config)) {
+                  throw "Invalid JSON in ${name}: config.json missing"
+              }
+              $moduleConfig = Get-Content -Path $config -Raw | ConvertFrom-Json
+              if ($moduleConfig.nonroot_method -notin @('injection', 'direct_patch', 'identity_shell')) {
+                  throw "Module ${name} must declare nonroot_method as 'injection', 'direct_patch', or 'identity_shell'."
+              }
+              if (-not (Test-Path -Path $java "Menu.java")) {
+                  throw "Module ${name} must include the shared Menu.java shell."
+              }
+              Write-Host "Module ${name} validated successfully."
+          }
+
+  deploy-worker:
+    name: Deploy Cloudflare Worker
+    runs-on: ubuntu-latest
+    needs: build-android
+    secrets:
+      CF_API_TOKEN: ${CF_API_TOKEN}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install wrangler v3
+        run: npm install wrangler@3.95.0
+
+      - name: Configure KV namespace in wrangler.toml
+        run: |
+          sed -i 's|REPLACE_AFTER_WRANGLER_KV_NAMESPACE_CREATE|e719ae14571745ff88f67b86205778ae|g' cloudflare/wrangler.toml
+
+      - name: Deploy Cloudflare Worker
+        run: |
+          wrangler deploy --remote-write-key=${{ secrets.CF_API_TOKEN }}

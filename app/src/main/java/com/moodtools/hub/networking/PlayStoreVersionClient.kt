@@ -166,7 +166,7 @@ class PlayStoreVersionClient(private val context: Context? = null) {
     }
 
     companion object {
-        private const val HOST = "jester.moodtools.workers.dev"
+        private const val HOST = "voidmod1.uncledrew697.workers.dev"
         private const val PLAY_STORE_PACKAGE = "com.android.vending"
         private const val IDENTITY_SHELL_METADATA = "com.moodtools.identity_shell"
         private const val MAX_BATCH_PACKAGES = 2_000

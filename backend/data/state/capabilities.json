@@ -1,0 +1,9 @@
+{
+  "PdhM6ZN43JNsYEI4DYwoBoYyBBolsMeDmmS8ylk9iF9WdJ8c2du-mhKC1R318k6rRaj07dPALMm9n9XVB7c_Og": {
+    "slug": "example-mod",
+    "build": 5,
+    "abi": "arm64-v8a",
+    "expiresAt": 1789011705,
+    "packageName": "com.example.mod"
+  }
+}

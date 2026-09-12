@@ -1,0 +1,34 @@
+{
+  "packageName": "com.example.mod",
+  "version": "1.0.5",
+  "notes": "test",
+  "privateScope": "",
+  "minimumBootstrap": 1,
+  "moduleConfig": {
+    "packageName": "com.example.mod",
+    "title": "Example Mod",
+    "supportedVersions": [
+      "1.0"
+    ],
+    "supportedAbis": [
+      "arm64-v8a"
+    ],
+    "dexFile": "classes.dex",
+    "nativeFile": "libmenu_native.so",
+    "entryPoint": "com.example.mod.Entry"
+  },
+  "files": {
+    "native": {
+      "arm64-v8a": {
+        "path": "/api/launcher-module-payload/example-mod/5/native/arm64-v8a",
+        "size": 30,
+        "sha256": "19147dc919c1b498b6f62e9f9b5fe1771d84b02b10d66da5c060c56d4df25aed"
+      }
+    },
+    "dex": {
+      "path": "/api/launcher-module-payload/example-mod/5/dex/classes.dex",
+      "size": 27,
+      "sha256": "195d3713e4b3046a760a9ee0fbf889a08206a339e1cfa0735596203d47ffbd0c"
+    }
+  }
+}

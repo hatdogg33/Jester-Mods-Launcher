@@ -102,7 +102,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="jester.moodtools.workers.dev"
+                    android:host="voidmod1.uncledrew697.workers.dev"
                     android:pathPrefix="/mod-update-release" />
             </intent-filter>
         </activity>

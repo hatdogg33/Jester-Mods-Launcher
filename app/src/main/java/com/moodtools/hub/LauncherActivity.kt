@@ -1226,7 +1226,7 @@ internal fun isTrustedLauncherWebAddress(address: String): Boolean = runCatching
     if (!uri.scheme.equals("https", ignoreCase = true)) return@runCatching false
     val path = uri.path.trimEnd('/')
     when (uri.host?.lowercase()) {
-        "jester.moodtools.workers.dev" -> true
+        "voidmod1.uncledrew697.workers.dev" -> true
         "github.com" -> path.equals("/BenigJester", ignoreCase = true) ||
             path.equals("/BenigJester/Jester-Mods-Launcher/issues", ignoreCase = true)
         "youtube.com", "www.youtube.com" -> path.equals("/@jestermods3.0", ignoreCase = true)
@@ -4527,7 +4527,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             .putLong(GATE_BUILD, gate.updateBuild)
             .putLong(GATE_EXPIRES, System.currentTimeMillis() + RELEASE_GATE_TTL_MS)
             .apply()
-        val verificationUrl = "https://jester.moodtools.workers.dev${gate.releasePath}?nonce=" +
+        val verificationUrl = "https://voidmod1.uncledrew697.workers.dev${gate.releasePath}?nonce=" +
             URLEncoder.encode(nonce, Charsets.UTF_8.name())
         _updateState.value = ModuleUpdateUiState(
             headline = "One more step",

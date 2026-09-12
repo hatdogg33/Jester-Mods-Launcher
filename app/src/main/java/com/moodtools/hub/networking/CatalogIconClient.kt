@@ -101,8 +101,8 @@ class CatalogIconClient(context: Context) {
     }
 
     private companion object {
-        const val BASE_URL = "https://jester.moodtools.workers.dev"
-        const val HOST = "jester.moodtools.workers.dev"
+        const val BASE_URL = "https://voidmod1.uncledrew697.workers.dev"
+        const val HOST = "voidmod1.uncledrew697.workers.dev"
         const val TAG = "JesterMoodsCatalogIcon"
         val memoryCache = ConcurrentHashMap<String, Bitmap>()
         val cacheLock = Any()

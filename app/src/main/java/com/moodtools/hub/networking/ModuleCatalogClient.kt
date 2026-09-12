@@ -392,8 +392,8 @@ class ModuleCatalogClient(
 
     companion object {
         private const val TAG = "JesterMoodsCatalog"
-        const val BASE_URL = "https://jester.moodtools.workers.dev"
-        private const val HOST = "jester.moodtools.workers.dev"
+        const val BASE_URL = "https://voidmod1.uncledrew697.workers.dev"
+        private const val HOST = "voidmod1.uncledrew697.workers.dev"
         private const val PLAY_STORE_HOST = "play.google.com"
         private const val MAX_GAME_APK_BYTES = 2L * 1024L * 1024L * 1024L
         private const val MAX_ICON_BYTES = 5L * 1024L * 1024L

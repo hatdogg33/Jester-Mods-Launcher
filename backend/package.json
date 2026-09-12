@@ -1,0 +1,14 @@
+{
+  "name": "jester-launcher-selfhosted-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "keys": "node scripts/generate-keys.mjs",
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "deviceId": "d_aaaaaaaaaaaaaaaaaaaa",
+  "installationId": "inst1",
+  "recoveryId": "r_bbbbbbbbbbbbbbbbbbbb",
+  "flavor": "root",
+  "accessVersion": 4,
+  "digitalKey": "RakaFyaIlvdGO7EtfeafZufQpn2bQLYiDr0Xg38mt1gtjqcS0A4vz1igATWa2INq_-1-y1HM-SRNQZTPLN9GWcpVJCcbP6L7",
+  "proofKeyId": "k1",
+  "recoveryBound": true
+}

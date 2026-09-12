@@ -151,7 +151,7 @@ class ModuleChangelogClient(private val context: android.content.Context) {
 
     companion object {
         private const val TAG = "JesterMoodsModuleHistory"
-        private const val BASE_URL = "https://jester.moodtools.workers.dev"
-        private const val HOST = "jester.moodtools.workers.dev"
+        private const val BASE_URL = "https://voidmod1.uncledrew697.workers.dev"
+        private const val HOST = "voidmod1.uncledrew697.workers.dev"
     }
 }
