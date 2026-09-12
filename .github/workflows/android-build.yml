@@ -20,7 +20,6 @@ on:
         options:
           - release
           - debug
-          - hardenedTest
 
 env:
   # Gradle cache key prefix
@@ -131,13 +130,22 @@ jobs:
 
       - name: Build ${{ matrix.flavor }}-${{ matrix.build_type }}
         run: |
-          ./gradlew :app:assemble${{ matrix.flavor | title }}${{ matrix.build_type | title }} \
-            --no-daemon \
-            -Pandroid.suppressKotlinVersionCompatibilityCheck=true
+          if [ "${{ matrix.flavor }}" = "root" ]; then
+            TASK="assembleRoot${{ matrix.build_type == 'release' && 'Release' || 'Debug' }}"
+          else
+            TASK="assembleNonroot${{ matrix.build_type == 'release' && 'Release' || 'Debug' }}"
+          fi
+          echo "Running :app:$TASK"
+          ./gradlew :app:$TASK --no-daemon -Pandroid.suppressKotlinVersionCompatibilityCheck=true
 
       - name: Build identity-shell-template (nonroot only)
         if: matrix.flavor == 'nonroot'
-        run: ./gradlew :identity-shell-template:assemble${{ matrix.build_type | title }} --no-daemon
+        run: |
+          if [ "${{ matrix.build_type }}" = "release" ]; then
+            ./gradlew :identity-shell-template:assembleRelease --no-daemon
+          else
+            ./gradlew :identity-shell-template:assembleDebug --no-daemon
+          fi
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -274,9 +282,13 @@ jobs:
 
       - name: Build ${{ matrix.flavor }}-${{ github.event.inputs.build_type }}
         run: |
-          ./gradlew :app:assemble${{ matrix.flavor | title }}${{ github.event.inputs.build_type | title }} \
-            --no-daemon \
-            -Pandroid.suppressKotlinVersionCompatibilityCheck=true
+          if [ "${{ matrix.flavor }}" = "root" ]; then
+            TASK="assembleRoot${{ github.event.inputs.build_type | title }}"
+          else
+            TASK="assembleNonroot${{ github.event.inputs.build_type | title }}"
+          fi
+          echo "Running :app:$TASK"
+          ./gradlew :app:$TASK --no-daemon -Pandroid.suppressKotlinVersionCompatibilityCheck=true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
