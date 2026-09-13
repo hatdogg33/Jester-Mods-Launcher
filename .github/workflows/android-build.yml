@@ -22,7 +22,6 @@ on:
           - debug
 
 env:
-  # Gradle cache key prefix
   GRADLE_CACHE_KEY: jester-gradle-${{ runner.os }}-${{ hashFiles('gradle.properties', 'build.gradle', 'app/build.gradle', 'identity-shell-template/build.gradle') }}
   GRADLE_CACHE_KEY_FALLBACK: jester-gradle-${{ runner.os }}-
 
@@ -31,30 +30,19 @@ jobs:
     name: Validate & Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Validate Gradle wrapper
-        run: ./gradlew wrapper --version
-
-      - name: Run lint (Debug)
-        run: ./gradlew :app:lintDebug --no-daemon
+      - run: chmod +x gradlew
+      - run: ./gradlew wrapper --version
+      - run: ./gradlew :app:lintDebug --no-daemon
         continue-on-error: true
-
-      - name: Run ktlint
-        run: ./gradlew ktlintCheck --no-daemon
+      - run: ./gradlew ktlintCheck --no-daemon
         continue-on-error: true
 
   build:
@@ -65,49 +53,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - flavor: nonroot
-            build_type: release
-          - flavor: root
-            build_type: release
-          - flavor: nonroot
-            build_type: debug
-          - flavor: root
-            build_type: debug
+        flavor: [root, nonroot]
+        build_type: [release, debug]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
         with:
           api-level: 35
           ndk-version: r26d
           cmake-version: 3.22.1
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      - run: chmod +x gradlew
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ env.GRADLE_CACHE_KEY }}
-          restore-keys: |
-            ${{ env.GRADLE_CACHE_KEY_FALLBACK }}
+          restore-keys: ${{ env.GRADLE_CACHE_KEY_FALLBACK }}
 
-      - name: Configure signing (release only)
+      - name: Configure signing
         if: matrix.build_type == 'release'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -123,176 +95,25 @@ jobs:
             keyAlias=$KEY_ALIAS
             keyPassword=$KEY_PASSWORD
             EOF
-            echo "Signing configured"
-          else
-            echo "No keystore secrets - release will be unsigned"
           fi
 
-      - name: Build ${{ matrix.flavor }}-${{ matrix.build_type }}
+      - name: Build
         run: |
-          if [ "${{ matrix.flavor }}" = "root" ]; then
-            TASK="assembleRoot${{ matrix.build_type == 'release' && 'Release' || 'Debug' }}"
-          else
-            TASK="assembleNonroot${{ matrix.build_type == 'release' && 'Release' || 'Debug' }}"
-          fi
-          echo "Running :app:$TASK"
+          TASK="assemble${{ matrix.flavor | title }}${{ matrix.build_type | title }}"
           ./gradlew :app:$TASK --no-daemon -Pandroid.suppressKotlinVersionCompatibilityCheck=true
 
-      - name: Build identity-shell-template (nonroot only)
+      - name: Build identity-shell (nonroot)
         if: matrix.flavor == 'nonroot'
         run: |
-          if [ "${{ matrix.build_type }}" = "release" ]; then
-            ./gradlew :identity-shell-template:assembleRelease --no-daemon
-          else
-            ./gradlew :identity-shell-template:assembleDebug --no-daemon
-          fi
-
-      - name: Upload APK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.flavor }}-${{ matrix.build_type }}-apks
-          path: |
-            app/build/outputs/apk/${{ matrix.flavor }}/${{ matrix.build_type }}/*.apk
-            identity-shell-template/build/outputs/apk/${{ matrix.build_type }}/*.apk
-          retention-days: 30
-
-      - name: Upload AAB artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.flavor }}-${{ matrix.build_type }}-aabs
-          path: |
-            app/build/outputs/bundle/${{ matrix.flavor }}${{ matrix.build_type | title }}/*.aab
-          retention-days: 30
-
-  build-all:
-    name: Build All Flavors (Release)
-    needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-          pattern: *-release-*
-
-      - name: List artifacts
-        run: find artifacts -type f -name "*.apk" -o -name "*.aab" | sort
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*.apk
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-
-  pr-check:
-    name: PR Check
-    needs: validate
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 35
-          ndk-version: r26d
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Build PR check (nonroot debug)
-        run: ./gradlew :app:assembleNonrootDebug --no-daemon
-
-      - name: Run unit tests
-        run: ./gradlew test --no-daemon --continue
-
-  manual-release:
-    name: Manual Release Build
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - flavor: nonroot
-          - flavor: root
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 35
-          ndk-version: r26d
-          cmake-version: 3.22.1
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ env.GRADLE_CACHE_KEY }}
-          restore-keys: |
-            ${{ env.GRADLE_CACHE_KEY_FALLBACK }}
-
-      - name: Configure signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-            cat > keystore.properties <<EOF
-            storeFile=keystore.jks
-            storePassword=$KEYSTORE_PASSWORD
-            keyAlias=$KEY_ALIAS
-            keyPassword=$KEY_PASSWORD
-            EOF
-          fi
-
-      - name: Build ${{ matrix.flavor }}-${{ github.event.inputs.build_type }}
-        run: |
-          if [ "${{ matrix.flavor }}" = "root" ]; then
-            TASK="assembleRoot${{ github.event.inputs.build_type | title }}"
-          else
-            TASK="assembleNonroot${{ github.event.inputs.build_type | title }}"
-          fi
-          echo "Running :app:$TASK"
-          ./gradlew :app:$TASK --no-daemon -Pandroid.suppressKotlinVersionCompatibilityCheck=true
+          TASK="assemble${{ matrix.build_type | title }}"
+          ./gradlew :identity-shell-template:$TASK --no-daemon
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: manual-${{ matrix.flavor }}-${{ github.event.inputs.build_type }}
-          path: app/build/outputs/**/*.apk
+          name: ${{ matrix.flavor }}-${{ matrix.build_type }}-artifacts
+          path: |
+            app/build/outputs/apk/${{ matrix.flavor }}/${{ matrix.build_type }}/*.apk
+            app/build/outputs/bundle/${{ matrix.flavor }}${{ matrix.build_type | title }}/*.aab
+            identity-shell-template/build/outputs/apk/${{ matrix.build_type }}/*.apk
           retention-days: 30
