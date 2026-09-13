@@ -1,119 +1,157 @@
-name: Android Build & Release
+name: Android Build
 
 on:
   push:
-    tags:
-      - 'v*'
-    branches:
-      - main
-      - release/*
+    branches: [main, 'release/**']
+    tags: ['v*']
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Build type'
+        description: Build type
         required: true
-        default: 'release'
+        default: debug
         type: choice
-        options:
-          - release
-          - debug
+        options: [debug, release, hardenedTest]
+
+permissions:
+  contents: read
 
 env:
-  GRADLE_CACHE_KEY: jester-gradle-${{ runner.os }}-${{ hashFiles('gradle.properties', 'build.gradle', 'app/build.gradle', 'identity-shell-template/build.gradle') }}
-  GRADLE_CACHE_KEY_FALLBACK: jester-gradle-${{ runner.os }}-
+  JAVA_VERSION: '17'
+  ANDROID_API_LEVEL: '35'
+  ANDROID_BUILD_TOOLS: '35.0.0'
+  ANDROID_NDK_VERSION: '30.0.14904198'
+  ANDROID_CMAKE_VERSION: '3.22.1'
 
 jobs:
-  validate:
-    name: Validate & Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-      - run: chmod +x gradlew
-      - run: ./gradlew wrapper --version
-      - run: ./gradlew :app:lintDebug --no-daemon
-        continue-on-error: true
-      - run: ./gradlew ktlintCheck --no-daemon
-        continue-on-error: true
-
-  build:
-    name: Build Android (${{ matrix.flavor }} ${{ matrix.build_type }})
-    needs: validate
+  build-debug:
+    name: Debug APK (${{ matrix.flavor }})
+    # Pushes and PRs build debug APKs. A tag or manual release build is handled below.
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         flavor: [root, nonroot]
-        build_type: [release, debug]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           cache: gradle
+
       - uses: android-actions/setup-android@v3
-        with:
-          api-level: 35
-          ndk-version: r26d
-          cmake-version: 3.22.1
 
-      - run: chmod +x gradlew
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ env.GRADLE_CACHE_KEY }}
-          restore-keys: ${{ env.GRADLE_CACHE_KEY_FALLBACK }}
+      - name: Install Android SDK, NDK, and CMake
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;${ANDROID_CMAKE_VERSION}"
 
-      - name: Configure signing
-        if: matrix.build_type == 'release'
+      - name: Prepare Gradle
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: |
+          case "${{ matrix.flavor }}" in
+            root) TASK=assembleRootDebug ;;
+            nonroot) TASK=assembleNonrootDebug ;;
+            *) echo "Unknown flavor" >&2; exit 1 ;;
+          esac
+          echo "Running :app:${TASK}"
+          ./gradlew :app:${TASK} --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jester-${{ matrix.flavor }}-debug
+          path: app/build/outputs/apk/${{ matrix.flavor }}/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  build-release:
+    name: Signed APK (${{ matrix.flavor }} · ${{ inputs.build_type || 'release' }})
+    # A release requires the four signing secrets. Run manually, or push a v* tag.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [root, nonroot]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK, NDK, and CMake
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;${ANDROID_CMAKE_VERSION}"
+
+      - name: Prepare signing configuration
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-            cat > keystore.properties <<EOF
-            storeFile=keystore.jks
-            storePassword=$KEYSTORE_PASSWORD
-            keyAlias=$KEY_ALIAS
-            keyPassword=$KEY_PASSWORD
-            EOF
-          fi
+          test -n "$KEYSTORE_BASE64" || { echo "Missing KEYSTORE_BASE64 secret" >&2; exit 1; }
+          test -n "$KEYSTORE_PASSWORD" || { echo "Missing KEYSTORE_PASSWORD secret" >&2; exit 1; }
+          test -n "$KEY_ALIAS" || { echo "Missing KEY_ALIAS secret" >&2; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo "Missing KEY_PASSWORD secret" >&2; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
+          cat > keystore.properties <<EOF
+          storeFile=keystore.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
 
-      - name: Build
+      - name: Prepare Gradle
+        run: chmod +x gradlew
+
+      - name: Build signed APK
         run: |
-          TASK="assemble${{ matrix.flavor | title }}${{ matrix.build_type | title }}"
-          ./gradlew :app:$TASK --no-daemon -Pandroid.suppressKotlinVersionCompatibilityCheck=true
+          TYPE="${{ inputs.build_type || 'release' }}"
+          case "${{ matrix.flavor }}-${TYPE}" in
+            root-release) TASK=assembleRootRelease ;;
+            nonroot-release) TASK=assembleNonrootRelease ;;
+            root-hardenedTest) TASK=assembleRootHardenedTest ;;
+            nonroot-hardenedTest) TASK=assembleNonrootHardenedTest ;;
+            root-debug) TASK=assembleRootDebug ;;
+            nonroot-debug) TASK=assembleNonrootDebug ;;
+            *) echo "Unsupported flavor/build type" >&2; exit 1 ;;
+          esac
+          echo "Running :app:${TASK}"
+          ./gradlew :app:${TASK} --no-daemon --stacktrace
 
-      - name: Build identity-shell (nonroot)
-        if: matrix.flavor == 'nonroot'
-        run: |
-          TASK="assemble${{ matrix.build_type | title }}"
-          ./gradlew :identity-shell-template:$TASK --no-daemon
-
-      - name: Upload artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.flavor }}-${{ matrix.build_type }}-artifacts
-          path: |
-            app/build/outputs/apk/${{ matrix.flavor }}/${{ matrix.build_type }}/*.apk
-            app/build/outputs/bundle/${{ matrix.flavor }}${{ matrix.build_type | title }}/*.aab
-            identity-shell-template/build/outputs/apk/${{ matrix.build_type }}/*.apk
+          name: jester-${{ matrix.flavor }}-${{ inputs.build_type || 'release' }}
+          path: app/build/outputs/apk/${{ matrix.flavor }}/**/*.apk
+          if-no-files-found: error
           retention-days: 30
