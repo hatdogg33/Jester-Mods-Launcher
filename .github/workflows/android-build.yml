@@ -40,8 +40,10 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: gradle
 
-      - name: Setup Android SDK
+      - name: Setup Android SDK tools
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install required Android packages
         run: |
