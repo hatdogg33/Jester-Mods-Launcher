@@ -67,6 +67,16 @@ jobs:
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
           test -s keystore.jks || { echo "Decoded keystore is empty" >&2; exit 1; }
           keytool -list -keystore keystore.jks -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" >/dev/null
+          # Read the actual certificate fingerprint from the supplied keystore.
+          # Do not rely on the repository's static value: a valid user keystore
+          # may legitimately have a different certificate than the local copy.
+          RELEASE_SIGNER_SHA256=$(keytool -list -v -keystore keystore.jks -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null \
+            | awk -F': ' '/SHA256:/{gsub(":", "", $2); print toupper($2); exit}')
+          if ! [[ "$RELEASE_SIGNER_SHA256" =~ ^[0-9A-F]{64}$ ]]; then
+            echo "Could not read a valid SHA-256 certificate fingerprint" >&2
+            exit 1
+          fi
+          echo "RELEASE_SIGNER_SHA256=$RELEASE_SIGNER_SHA256" >> "$GITHUB_ENV"
           cat > keystore.properties <<EOF
           storeFile=keystore.jks
           storePassword=$KEYSTORE_PASSWORD
@@ -84,7 +94,7 @@ jobs:
           else
             TASK=assembleNonrootRelease
           fi
-          ./gradlew :app:$TASK --no-daemon --stacktrace
+          ./gradlew :app:$TASK --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
 
       - name: Verify APK signature and output
         env:
