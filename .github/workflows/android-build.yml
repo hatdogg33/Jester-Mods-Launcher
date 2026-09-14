@@ -112,6 +112,25 @@ jobs:
             "ndk;${ANDROID_NDK_VERSION}" \
             "cmake;${ANDROID_CMAKE_VERSION}"
 
+      - name: Debug - Check secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "=== SECRET VERIFICATION ==="
+          echo "KEYSTORE_BASE64 exists: $([ -z "$KEYSTORE_BASE64" ] && echo "❌ NO" || echo "✅ YES")"
+          echo "KEYSTORE_BASE64 length: ${#KEYSTORE_BASE64}"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "KEYSTORE_BASE64 first 50 chars: ${KEYSTORE_BASE64:0:50}"
+            echo "KEYSTORE_BASE64 last 50 chars: ${KEYSTORE_BASE64: -50}"
+          fi
+          echo "KEYSTORE_PASSWORD exists: $([ -z "$KEYSTORE_PASSWORD" ] && echo "❌ NO" || echo "✅ YES")"
+          echo "KEY_ALIAS exists: $([ -z "$KEY_ALIAS" ] && echo "❌ NO" || echo "✅ YES")"
+          echo "KEY_PASSWORD exists: $([ -z "$KEY_PASSWORD" ] && echo "❌ NO" || echo "✅ YES")"
+          echo "================================"
+
       - name: Prepare signing configuration
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -119,17 +138,73 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          test -n "$KEYSTORE_BASE64" || { echo "Missing KEYSTORE_BASE64 secret" >&2; exit 1; }
-          test -n "$KEYSTORE_PASSWORD" || { echo "Missing KEYSTORE_PASSWORD secret" >&2; exit 1; }
-          test -n "$KEY_ALIAS" || { echo "Missing KEY_ALIAS secret" >&2; exit 1; }
-          test -n "$KEY_PASSWORD" || { echo "Missing KEY_PASSWORD secret" >&2; exit 1; }
-          echo "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
+          set -euo pipefail
+          
+          echo "=== VALIDATING SECRETS ==="
+          
+          # Check all secrets are present
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "❌ KEYSTORE_BASE64 is empty or not set"
+            exit 1
+          fi
+          
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "❌ KEYSTORE_PASSWORD is empty or not set"
+            exit 1
+          fi
+          
+          if [ -z "$KEY_ALIAS" ]; then
+            echo "❌ KEY_ALIAS is empty or not set"
+            exit 1
+          fi
+          
+          if [ -z "$KEY_PASSWORD" ]; then
+            echo "❌ KEY_PASSWORD is empty or not set"
+            exit 1
+          fi
+          
+          echo "✅ All secrets are present"
+          
+          echo "=== DECODING KEYSTORE ==="
+          
+          # Decode keystore with error handling
+          if ! echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks 2>/dev/null; then
+            echo "❌ Failed to decode keystore from base64"
+            exit 1
+          fi
+          
+          # Verify file was created and has content
+          if [ ! -f keystore.jks ]; then
+            echo "❌ Keystore file was not created"
+            exit 1
+          fi
+          
+          KEYSTORE_SIZE=$(stat -c%s keystore.jks)
+          if [ "$KEYSTORE_SIZE" -eq 0 ]; then
+            echo "❌ Keystore file is empty (0 bytes)"
+            exit 1
+          fi
+          
+          echo "✅ Keystore decoded successfully"
+          echo "   File size: $KEYSTORE_SIZE bytes"
+          ls -lh keystore.jks
+          
+          # Verify it's actually a valid keystore
+          if ! file keystore.jks | grep -q "data\|Java"; then
+            echo "⚠️  Warning: File type check - $(file keystore.jks)"
+          fi
+          
+          echo "=== CREATING KEYSTORE PROPERTIES ==="
+          
           cat > keystore.properties <<EOF
           storeFile=keystore.jks
           storePassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           keyPassword=$KEY_PASSWORD
           EOF
+          
+          echo "✅ keystore.properties created"
+          cat keystore.properties
 
       - name: Prepare Gradle
         run: chmod +x gradlew
@@ -230,4 +305,4 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$RELEASE_BODY" \
             "${BACKEND_URL}/api/_admin/releases"
-
+            
