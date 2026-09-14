@@ -7,13 +7,6 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: Build type
-        required: true
-        default: release
-        type: choice
-        options: [release, debug, hardenedTest]
 
 permissions:
   contents: read
@@ -26,30 +19,31 @@ env:
   ANDROID_CMAKE_VERSION: '3.22.1'
 
 jobs:
-  # Every run builds signed release APKs for both flavors.
-  # Pull requests and pushes no longer publish debug-only artifacts.
   build-release:
     name: Signed Release APK (${{ matrix.flavor }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
         flavor: [root, nonroot]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - uses: actions/setup-java@v4
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK, NDK, and CMake
+      - name: Install required Android packages
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager \
@@ -58,18 +52,21 @@ jobs:
             "ndk;${ANDROID_NDK_VERSION}" \
             "cmake;${ANDROID_CMAKE_VERSION}"
 
-      - name: Prepare signing configuration
+      - name: Configure signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          test -n "$KEYSTORE_BASE64" || { echo "Missing KEYSTORE_BASE64 secret" >&2; exit 1; }
-          test -n "$KEYSTORE_PASSWORD" || { echo "Missing KEYSTORE_PASSWORD secret" >&2; exit 1; }
-          test -n "$KEY_ALIAS" || { echo "Missing KEY_ALIAS secret" >&2; exit 1; }
-          test -n "$KEY_PASSWORD" || { echo "Missing KEY_PASSWORD secret" >&2; exit 1; }
-          echo "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64" || { echo "KEYSTORE_BASE64 is empty" >&2; exit 1; }
+          test -n "$KEYSTORE_PASSWORD" || { echo "KEYSTORE_PASSWORD is empty" >&2; exit 1; }
+          test -n "$KEY_ALIAS" || { echo "KEY_ALIAS is empty" >&2; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo "KEY_PASSWORD is empty" >&2; exit 1; }
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
+          test -s keystore.jks || { echo "Decoded keystore is empty" >&2; exit 1; }
+          keytool -list -keystore keystore.jks -alias "$KEY_ALIAS" -storepass "$KEYSTORE_PASSWORD" >/dev/null
           cat > keystore.properties <<EOF
           storeFile=keystore.jks
           storePassword=$KEYSTORE_PASSWORD
@@ -80,294 +77,33 @@ jobs:
       - name: Prepare Gradle
         run: chmod +x gradlew
 
-      - name: Build signed release APK
+      - name: Build ${{ matrix.flavor }} release APK
         run: |
-          TYPE="release"
-          case "${{ matrix.flavor }}" in
-            root) TASK=assembleRootRelease ;;
-            nonroot) TASK=assembleNonrootRelease ;;
-            *) echo "Unsupported flavor" >&2; exit 1 ;;
-          esac
-          echo "Running :app:${TASK}"
-          ./gradlew :app:${TASK} --no-daemon --stacktrace
+          if [ "${{ matrix.flavor }}" = "root" ]; then
+            TASK=assembleRootRelease
+          else
+            TASK=assembleNonrootRelease
+          fi
+          ./gradlew :app:$TASK --no-daemon --stacktrace
 
-      - name: Upload signed release APK
+      - name: Verify APK signature and output
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          APK=$(find "app/build/outputs/apk/${{ matrix.flavor }}/release" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          test -n "$APK" || { echo "No release APK produced" >&2; exit 1; }
+          test -s "$APK"
+          echo "APK: $APK"
+          sha256sum "$APK"
+          apksigner verify --verbose "$APK"
+          apksigner verify --verbose --print-certs "$APK"
+
+      - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jester-${{ matrix.flavor }}-release-signed
+          name: jester-${{ matrix.flavor }}-release
           path: app/build/outputs/apk/${{ matrix.flavor }}/release/*.apk
           if-no-files-found: error
           retention-days: 30
-
-      # Upload APK to backend storage (B2/R2) and create release record
-      - name: Upload to backend storage
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
-        env:
-          ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
-          BACKEND_URL: https://voidmod1.uncledrew697.workers.dev
-        run: |
-          set -euo pipefail
-          FLAVOR="${{ matrix.flavor }}"
-          TYPE="release"
-          case "${FLAVOR}" in
-            root) TASK=assembleRootRelease ;;
-            nonroot) TASK=assembleNonrootRelease ;;
-            *) echo "Unsupported flavor" >&2; exit 1 ;;
-          esac
-          echo "Running :app:${TASK}"
-          ./gradlew :app:${TASK} --no-daemon --stacktrace
-
-          # Find the built APK
-          APK=$(ls app/build/outputs/apk/${FLAVOR}/${TYPE}/*.apk)
-          echo "Found APK: $APK"
-
-          # Calculate SHA256 and size
-          SHA256=$(sha256sum "$APK" | cut -d' ' -f1)
-          SIZE=$(stat -c%s "$APK")
-
-          # Build number from gradle.properties
-          BUILD=$(grep 'launcherVersionCode' gradle.properties | cut -d= -f2)
-          VERSION=$(grep 'launcherVersionName' gradle.properties | cut -d= -f2)
-
-          echo "Uploading ${FLAVOR} APK (build ${BUILD}, version ${VERSION})..."
-          echo "SHA256: $SHA256"
-          echo "Size: $SIZE bytes"
-
-          # Upload to backend storage (R2/B2)
-          UPLOAD_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @"$APK" \
-            "${BACKEND_URL}/api/_admin/upload?path=launcher/${FLAVOR}/${BUILD}.apk&type=application/vnd.android.package-archive")
-
-          echo "Upload response: $UPLOAD_RESPONSE"
-
-          UPLOAD_SHA256=$(echo "$UPLOAD_RESPONSE" | jq -r '.sha256')
-          UPLOAD_SIZE=$(echo "$UPLOAD_RESPONSE" | jq -r '.size')
-          STORED_ON=$(echo "$UPLOAD_RESPONSE" | jq -r '.storedOn')
-
-          if [ "$SHA256" != "$UPLOAD_SHA256" ]; then
-            echo "WARNING: SHA256 mismatch! local=$SHA256 remote=$UPLOAD_SHA256"
-          fi
-
-          # Create release record in backend
-          RELEASE_BODY=$(jq -n \
-            --argjson build "$BUILD" \
-            --arg flavor "$FLAVOR" \
-            --arg version "$VERSION" \
-            --arg notes "Released on $(date -I)" \
-            --arg path "/api/launcher-download/${BUILD}/${FLAVOR}.apk" \
-            --arg sha256 "$UPLOAD_SHA256" \
-            --argjson size "$UPLOAD_SIZE" \
-            --argjson test_channel 0 \
-            --argjson published_at "$(date +%s)" \
-            '{build: $build, flavor: $flavor, version: $version, notes: $notes, path: $path, sha256: $sha256, size_bytes: $size, test_channel: $test_channel, published_at: $published_at}')
-
-          curl -s -X POST \
-            -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "$RELEASE_BODY" \
-            "${BACKEND_URL}/api/_admin/releases"
-
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            "platforms;android-${ANDROID_API_LEVEL}" \
-            "build-tools;${ANDROID_BUILD_TOOLS}" \
-            "ndk;${ANDROID_NDK_VERSION}" \
-            "cmake;${ANDROID_CMAKE_VERSION}"
-
-      - name: Debug - Check secrets
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          echo "=== SECRET VERIFICATION ==="
-          echo "KEYSTORE_BASE64 exists: $([ -z "$KEYSTORE_BASE64" ] && echo "❌ NO" || echo "✅ YES")"
-          echo "KEYSTORE_BASE64 length: ${#KEYSTORE_BASE64}"
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "KEYSTORE_BASE64 first 50 chars: ${KEYSTORE_BASE64:0:50}"
-            echo "KEYSTORE_BASE64 last 50 chars: ${KEYSTORE_BASE64: -50}"
-          fi
-          echo "KEYSTORE_PASSWORD exists: $([ -z "$KEYSTORE_PASSWORD" ] && echo "❌ NO" || echo "✅ YES")"
-          echo "KEY_ALIAS exists: $([ -z "$KEY_ALIAS" ] && echo "❌ NO" || echo "✅ YES")"
-          echo "KEY_PASSWORD exists: $([ -z "$KEY_PASSWORD" ] && echo "❌ NO" || echo "✅ YES")"
-          echo "================================"
-
-      - name: Prepare signing configuration
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          
-          echo "=== VALIDATING SECRETS ==="
-          
-          # Check all secrets are present
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "❌ KEYSTORE_BASE64 is empty or not set"
-            exit 1
-          fi
-          
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "❌ KEYSTORE_PASSWORD is empty or not set"
-            exit 1
-          fi
-          
-          if [ -z "$KEY_ALIAS" ]; then
-            echo "❌ KEY_ALIAS is empty or not set"
-            exit 1
-          fi
-          
-          if [ -z "$KEY_PASSWORD" ]; then
-            echo "❌ KEY_PASSWORD is empty or not set"
-            exit 1
-          fi
-          
-          echo "✅ All secrets are present"
-          
-          echo "=== DECODING KEYSTORE ==="
-          
-          # Decode keystore with error handling
-          if ! echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks 2>/dev/null; then
-            echo "❌ Failed to decode keystore from base64"
-            exit 1
-          fi
-          
-          # Verify file was created and has content
-          if [ ! -f keystore.jks ]; then
-            echo "❌ Keystore file was not created"
-            exit 1
-          fi
-          
-          KEYSTORE_SIZE=$(stat -c%s keystore.jks)
-          if [ "$KEYSTORE_SIZE" -eq 0 ]; then
-            echo "❌ Keystore file is empty (0 bytes)"
-            exit 1
-          fi
-          
-          echo "✅ Keystore decoded successfully"
-          echo "   File size: $KEYSTORE_SIZE bytes"
-          ls -lh keystore.jks
-          
-          # Verify it's actually a valid keystore
-          if ! file keystore.jks | grep -q "data\|Java"; then
-            echo "⚠️  Warning: File type check - $(file keystore.jks)"
-          fi
-          
-          echo "=== CREATING KEYSTORE PROPERTIES ==="
-          
-          cat > keystore.properties <<EOF
-          storeFile=keystore.jks
-          storePassword=$KEYSTORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
-          EOF
-          
-          echo "✅ keystore.properties created"
-          cat keystore.properties
-
-      - name: Prepare Gradle
-        run: chmod +x gradlew
-
-      - name: Build signed release APK
-        run: |
-          TYPE="${{ inputs.build_type || 'release' }}"
-          case "${{ matrix.flavor }}-${TYPE}" in
-            root-release) TASK=assembleRootRelease ;;
-            nonroot-release) TASK=assembleNonrootRelease ;;
-            root-hardenedTest) TASK=assembleRootHardenedTest ;;
-            nonroot-hardenedTest) TASK=assembleNonrootHardenedTest ;;
-            root-debug) TASK=assembleRootDebug ;;
-            nonroot-debug) TASK=assembleNonrootDebug ;;
-            *) echo "Unsupported flavor/build type" >&2; exit 1 ;;
-          esac
-          echo "Running :app:${TASK}"
-          ./gradlew :app:${TASK} --no-daemon --stacktrace
-
-      - name: Upload signed release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: jester-${{ matrix.flavor }}-${{ inputs.build_type || 'release' }}-signed
-          path: app/build/outputs/apk/${{ matrix.flavor }}/${{ inputs.build_type || 'release' }}/*.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      # Upload APK to backend storage (B2/R2) and create release record
-      - name: Upload to backend storage
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
-        env:
-          ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
-          BACKEND_URL: https://voidmod1.uncledrew697.workers.dev
-        run: |
-          set -euo pipefail
-          FLAVOR="${{ matrix.flavor }}"
-          TYPE="${{ inputs.build_type || 'release' }}"
-          case "${FLAVOR}-${TYPE}" in
-            root-release) TASK=assembleRootRelease ;;
-            nonroot-release) TASK=assembleNonrootRelease ;;
-            root-hardenedTest) TASK=assembleRootHardenedTest ;;
-            nonroot-hardenedTest) TASK=assembleNonrootHardenedTest ;;
-            root-debug) TASK=assembleRootDebug ;;
-            nonroot-debug) TASK=assembleNonrootDebug ;;
-            *) echo "Unsupported flavor/build type" >&2; exit 1 ;;
-          esac
-          echo "Running :app:${TASK}"
-          ./gradlew :app:${TASK} --no-daemon --stacktrace
-
-          # Find the built APK
-          APK=$(ls app/build/outputs/apk/${FLAVOR}/${TYPE}/*.apk)
-          echo "Found APK: $APK"
-
-          # Calculate SHA256 and size
-          SHA256=$(sha256sum "$APK" | cut -d' ' -f1)
-          SIZE=$(stat -c%s "$APK")
-
-          # Build number from gradle.properties
-          BUILD=$(grep 'launcherVersionCode' gradle.properties | cut -d= -f2)
-          VERSION=$(grep 'launcherVersionName' gradle.properties | cut -d= -f2)
-
-          echo "Uploading ${FLAVOR} APK (build ${BUILD}, version ${VERSION})..."
-          echo "SHA256: $SHA256"
-          echo "Size: $SIZE bytes"
-
-          # Upload to backend storage (R2/B2)
-          UPLOAD_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @"$APK" \
-            "${BACKEND_URL}/api/_admin/upload?path=launcher/${FLAVOR}/${BUILD}.apk&type=application/vnd.android.package-archive")
-
-          echo "Upload response: $UPLOAD_RESPONSE"
-
-          UPLOAD_SHA256=$(echo "$UPLOAD_RESPONSE" | jq -r '.sha256')
-          UPLOAD_SIZE=$(echo "$UPLOAD_RESPONSE" | jq -r '.size')
-          STORED_ON=$(echo "$UPLOAD_RESPONSE" | jq -r '.storedOn')
-
-          if [ "$SHA256" != "$UPLOAD_SHA256" ]; then
-            echo "WARNING: SHA256 mismatch! local=$SHA256 remote=$UPLOAD_SHA256"
-          fi
-
-          # Create release record in backend
-          RELEASE_BODY=$(jq -n \
-            --argjson build "$BUILD" \
-            --arg flavor "$FLAVOR" \
-            --arg version "$VERSION" \
-            --arg notes "Released on $(date -I)" \
-            --arg path "/api/launcher-download/${BUILD}/${FLAVOR}.apk" \
-            --arg sha256 "$UPLOAD_SHA256" \
-            --argjson size "$UPLOAD_SIZE" \
-            --argjson test_channel 0 \
-            --argjson published_at "$(date +%s)" \
-            '{build: $build, flavor: $flavor, version: $version, notes: $notes, path: $path, sha256: $sha256, size_bytes: $size, test_channel: $test_channel, published_at: $published_at}')
-
-          curl -s -X POST \
-            -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "$RELEASE_BODY" \
-            "${BACKEND_URL}/api/_admin/releases"
-            
