@@ -98,10 +98,7 @@ jobs:
           fi
           ./gradlew :app:$TASK --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
 
-      - name: Verify APK signature and output
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      - name: Verify APK output
         run: |
           set -euo pipefail
           APK=$(find "app/build/outputs/apk/${{ matrix.flavor }}/release" -maxdepth 1 -type f -name '*.apk' -print -quit)
@@ -109,8 +106,15 @@ jobs:
           test -s "$APK"
           echo "APK: $APK"
           sha256sum "$APK"
-          apksigner verify --verbose "$APK"
-          apksigner verify --verbose --print-certs "$APK"
+
+      - name: Verify APK signature
+        run: |
+          set -euo pipefail
+          APK=$(find "app/build/outputs/apk/${{ matrix.flavor }}/release" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          APKSIGNER="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}/apksigner"
+          test -x "$APKSIGNER" || { echo "apksigner not found at $APKSIGNER" >&2; exit 1; }
+          "$APKSIGNER" verify --verbose "$APK"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
 
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
