@@ -157,3 +157,77 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # Upload APK to backend storage (B2/R2) and create release record
+      - name: Upload to backend storage
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+        env:
+          ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
+          BACKEND_URL: https://voidmod1.uncledrew697.workers.dev
+        run: |
+          set -euo pipefail
+          FLAVOR="${{ matrix.flavor }}"
+          TYPE="${{ inputs.build_type || 'release' }}"
+          case "${FLAVOR}-${TYPE}" in
+            root-release) TASK=assembleRootRelease ;;
+            nonroot-release) TASK=assembleNonrootRelease ;;
+            root-hardenedTest) TASK=assembleRootHardenedTest ;;
+            nonroot-hardenedTest) TASK=assembleNonrootHardenedTest ;;
+            root-debug) TASK=assembleRootDebug ;;
+            nonroot-debug) TASK=assembleNonrootDebug ;;
+            *) echo "Unsupported flavor/build type" >&2; exit 1 ;;
+          esac
+          echo "Running :app:${TASK}"
+          ./gradlew :app:${TASK} --no-daemon --stacktrace
+
+          # Find the built APK
+          APK=$(ls app/build/outputs/apk/${FLAVOR}/${TYPE}/*.apk)
+          echo "Found APK: $APK"
+
+          # Calculate SHA256 and size
+          SHA256=$(sha256sum "$APK" | cut -d' ' -f1)
+          SIZE=$(stat -c%s "$APK")
+
+          # Build number from gradle.properties
+          BUILD=$(grep 'launcherVersionCode' gradle.properties | cut -d= -f2)
+          VERSION=$(grep 'launcherVersionName' gradle.properties | cut -d= -f2)
+
+          echo "Uploading ${FLAVOR} APK (build ${BUILD}, version ${VERSION})..."
+          echo "SHA256: $SHA256"
+          echo "Size: $SIZE bytes"
+
+          # Upload to backend storage (R2/B2)
+          UPLOAD_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"$APK" \
+            "${BACKEND_URL}/api/_admin/upload?path=launcher/${FLAVOR}/${BUILD}.apk&type=application/vnd.android.package-archive")
+
+          echo "Upload response: $UPLOAD_RESPONSE"
+
+          UPLOAD_SHA256=$(echo "$UPLOAD_RESPONSE" | jq -r '.sha256')
+          UPLOAD_SIZE=$(echo "$UPLOAD_RESPONSE" | jq -r '.size')
+          STORED_ON=$(echo "$UPLOAD_RESPONSE" | jq -r '.storedOn')
+
+          if [ "$SHA256" != "$UPLOAD_SHA256" ]; then
+            echo "WARNING: SHA256 mismatch! local=$SHA256 remote=$UPLOAD_SHA256"
+          fi
+
+          # Create release record in backend
+          RELEASE_BODY=$(jq -n \
+            --argjson build "$BUILD" \
+            --arg flavor "$FLAVOR" \
+            --arg version "$VERSION" \
+            --arg notes "Released on $(date -I)" \
+            --arg path "/api/launcher-download/${BUILD}/${FLAVOR}.apk" \
+            --arg sha256 "$UPLOAD_SHA256" \
+            --argjson size "$UPLOAD_SIZE" \
+            --argjson test_channel 0 \
+            --argjson published_at "$(date +%s)" \
+            '{build: $build, flavor: $flavor, version: $version, notes: $notes, path: $path, sha256: $sha256, size_bytes: $size, test_channel: $test_channel, published_at: $published_at}')
+
+          curl -s -X POST \
+            -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$RELEASE_BODY" \
+            "${BACKEND_URL}/api/_admin/releases"
+
