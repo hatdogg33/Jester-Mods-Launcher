@@ -22,7 +22,8 @@ class ModuleFeaturesClient(private val context: android.content.Context) {
             require(connection.responseCode in 200..299) {
                 "Feature request failed: ${connection.responseCode}"
             }
-            val envelope = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val response = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val envelope = response.getJSONObject("envelope")
             val parsed = parse(module, envelope)
             runCatching {
                 cacheFile(module).parentFile?.let {

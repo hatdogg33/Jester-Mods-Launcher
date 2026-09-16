@@ -144,7 +144,8 @@ class ModuleCatalogClient(
             require(connection.responseCode in 200..299) {
                 "Catalog request failed: ${connection.responseCode}"
             }
-            JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val response = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            response.getJSONObject("envelope")
         } finally {
             connection.disconnect()
         }

@@ -56,7 +56,8 @@ class LauncherUpdateClient(private val context: Context) {
             require(connection.responseCode in 200..299) {
                 "Launcher update check failed: ${connection.responseCode}"
             }
-            val envelope = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val response = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val envelope = response.getJSONObject("envelope")
             val release = parse(envelope, testChannel)
             runCatching {
                 check(updateDirectory.mkdirs() || updateDirectory.isDirectory) {
@@ -85,7 +86,8 @@ class LauncherUpdateClient(private val context: Context) {
             require(connection.responseCode in 200..299) {
                 "Launcher changelog request failed: ${connection.responseCode}"
             }
-            val envelope = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val response = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val envelope = response.getJSONObject("envelope")
             val entries = parseChangelog(envelope)
             runCatching {
                 changelogCache().writeText(envelope.toString())

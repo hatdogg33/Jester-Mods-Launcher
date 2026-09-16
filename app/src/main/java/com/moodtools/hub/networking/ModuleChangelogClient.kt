@@ -40,7 +40,8 @@ class ModuleChangelogClient(private val context: android.content.Context) {
         )
         return try {
             require(connection.responseCode in 200..299)
-            val envelope = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val response = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val envelope = response.getJSONObject("envelope")
             val parsed = parse(module, envelope)
             runCatching {
                 cacheFile(module).parentFile?.let {
