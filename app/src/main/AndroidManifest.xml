@@ -16,6 +16,40 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <uses-permission
+        android:name="android.permission.SYSTEM_ALERT_WINDOW"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.SYSTEM_OVERLAY_WINDOW"
+        tools:node="remove" />
+
+    <uses-permission android:name="android.permission.SEND_SMS" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECEIVE_MMS" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_SMS" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_SMS" tools:node="remove" />
+    <uses-permission android:name="android.permission.BROADCAST_WAP_PUSH" tools:node="remove" />
+    <uses-permission android:name="android.permission.BROADCAST_SMS" tools:node="remove" />
+    <uses-permission android:name="android.permission.SEND_RESPOND_VIA_MESSAGE" tools:node="remove" />
+    <uses-permission android:name="android.provider.Telephony.SMS_RECEIVED" tools:node="remove" />
+    <uses-permission android:name="android.permission.CALL_PHONE" tools:node="remove" />
+    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_CALL_LOG" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_PRECISE_PHONE_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.READ_CALL_LOG" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.WRITE_CALL_LOG" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.READ_PHONE_STATE" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.READ_PHONE_NUMBERS" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.READ_PRECISE_PHONE_STATE" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.FOREGROUND_SERVICE_PHONE_CALL" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.READ_CONTACTS" tools:node="remove" />
+    <uses-permission android:name="com.google.android.gms.permission.WRITE_CONTACTS" tools:node="remove" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -31,15 +65,38 @@
     </queries>
 
     <application
+        android:name=".HubApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
         android:icon="@mipmap/jester_moods_icon"
-        android:label="${launcherLabel}"
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/jester_moods_icon"
         android:resizeableActivity="true"
         android:supportsRtl="true"
         android:theme="@style/Theme.JesterMoods">
+
+        <provider
+            android:name=".identity.IdentityPayloadProvider"
+            android:authorities="${applicationId}.identity-payload"
+            android:exported="true"
+            android:grantUriPermissions="false" />
+
+        <provider
+            android:name=".DiagnosticExportProvider"
+            android:authorities="${applicationId}.diagnostics"
+            android:exported="true"
+            android:grantUriPermissions="false" />
+
+        <service
+            android:name=".LauncherTaskLifecycleService"
+            android:exported="false"
+            android:stopWithTask="false" />
+
+        <activity
+            android:name=".FacebookCallbackActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- Exposes only verified launcher-update and original-game APKs to Android's installer. -->
         <provider

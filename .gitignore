@@ -76,6 +76,7 @@ replay_pid*
 .AppleDouble
 Thumbs.db
 Desktop.ini
+metadata.json
 
 # Local operational notes and scratch files
 LOCAL_HANDOFF.md

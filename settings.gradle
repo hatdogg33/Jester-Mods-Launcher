@@ -11,14 +11,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
 }
 
-rootProject.name = 'Standalone Menu'
+rootProject.name = 'Jester Mods'
 include ':app'
-include ':identity-shell-template'
-include ':black-reflection', ':compiler', ':Bcore'
+include ':Bcore'
 
-project(':black-reflection').projectDir = file('third_party/BlackBox/black-reflection')
-project(':compiler').projectDir = file('third_party/BlackBox/compiler')
 project(':Bcore').projectDir = file('third_party/BlackBox/Bcore')

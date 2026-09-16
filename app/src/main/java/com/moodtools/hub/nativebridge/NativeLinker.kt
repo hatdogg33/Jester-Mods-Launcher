@@ -1,16 +1,12 @@
 package com.moodtools.hub.nativebridge
 
 object NativeLinker {
-    init {
-        System.loadLibrary("menu_native")
-    }
+    @JvmStatic
+    fun load(nativePath: String, packageName: String): Boolean = true
 
     @JvmStatic
-    external fun load(nativePath: String, packageName: String): Boolean
+    fun unload() {}
 
     @JvmStatic
-    external fun unload()
-
-    @JvmStatic
-    external fun inspectRuntime(): Int
+    fun inspectRuntime(): Int = 0
 }

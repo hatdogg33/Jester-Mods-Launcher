@@ -4,317 +4,58 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose'
 }
 
-def localSigningProperties = new Properties()
-def localSigningPropertiesFile = rootProject.file('keystore.properties')
-if (localSigningPropertiesFile.exists()) {
-    localSigningPropertiesFile.withInputStream { localSigningProperties.load(it) }
-}
-
-def signingValue = { String name ->
-    providers.gradleProperty(name).orNull ?: localSigningProperties.getProperty(name)
-}
-
-def debugSignerSha256 = 'ed994d5bc189fa7370f9d995fa427959254787c6055181cd68e79ce02b930cbb'
-def trustedReleaseSignerSha256 = providers.gradleProperty('trustedReleaseSignerSha256').getOrElse('')
-def releaseStorePath = signingValue('releaseStoreFile') ?: signingValue('storeFile')
-def releaseStorePassword = signingValue('releaseStorePassword') ?: signingValue('storePassword')
-def releaseKeyAlias = signingValue('releaseKeyAlias') ?: signingValue('keyAlias')
-def releaseKeyPassword = signingValue('releaseKeyPassword') ?: signingValue('keyPassword')
-def releaseSigningReady = releaseStorePath != null && releaseStorePassword != null &&
-        releaseKeyAlias != null && releaseKeyPassword != null
-
-def privateModuleBundleValue = providers.gradleProperty('privateModuleBundle').orNull
-def privateModuleScopeValue = providers.gradleProperty('privateModuleScope').orNull?.trim() ?: ''
-def localTestModuleBundleValue = providers.gradleProperty('localTestModuleBundle').orNull
-def privateModuleBundle = privateModuleBundleValue
-        ? rootProject.file(privateModuleBundleValue).canonicalFile
-        : null
-def localTestModuleBundle = localTestModuleBundleValue
-        ? rootProject.file(localTestModuleBundleValue).canonicalFile
-        : null
-def privateModulePackage = ''
-def privateModuleSha256 = ''
-def localTestModulePackage = ''
-def localTestModuleSha256 = ''
-if (privateModuleBundle != null && localTestModuleBundle != null) {
-    throw new GradleException('A launcher build cannot embed both a private module and a local test module.')
-}
-if (privateModuleBundle != null) {
-    if (!privateModuleBundle.isFile()) {
-        throw new GradleException("privateModuleBundle does not exist: ${privateModuleBundle}")
-    }
-    if (!(privateModuleScopeValue ==~ /[a-z0-9][a-z0-9._-]{2,63}/)) {
-        throw new GradleException(
-            'A private module build requires -PprivateModuleScope=<3-64 lowercase letters, digits, dots, underscores, or hyphens>.'
-        )
-    }
-    def archive = new java.util.zip.ZipFile(privateModuleBundle)
-    try {
-        def configEntry = archive.getEntry('config.json')
-        if (configEntry == null || configEntry.directory || configEntry.size < 2 || configEntry.size > 65_536) {
-            throw new GradleException('The private module bundle must contain a small config.json file.')
-        }
-        def configText = archive.getInputStream(configEntry).getText('UTF-8')
-        if (configText.startsWith('\uFEFF')) configText = configText.substring(1)
-        def config = new groovy.json.JsonSlurper().parseText(configText)
-        privateModulePackage = String.valueOf(config.package_name ?: config.target_package ?: '')
-        if (!(privateModulePackage ==~ /[A-Za-z0-9_.]{3,200}/)) {
-            throw new GradleException('The private module bundle contains an invalid package name.')
-        }
-        ['classes.dex', 'libmenu_native.so'].each { requiredName ->
-            def required = archive.getEntry(requiredName)
-            if (required == null || required.directory || required.size <= 0) {
-                throw new GradleException("The private module bundle is missing ${requiredName}.")
-            }
-        }
-    } finally {
-        archive.close()
-    }
-    privateModuleSha256 = java.security.MessageDigest.getInstance('SHA-256')
-        .digest(privateModuleBundle.bytes)
-        .collect { String.format('%02x', it & 0xFF) }
-        .join()
-}
-
-if (localTestModuleBundle != null) {
-    if (!localTestModuleBundle.isFile()) {
-        throw new GradleException("localTestModuleBundle does not exist: ${localTestModuleBundle}")
-    }
-    def archive = new java.util.zip.ZipFile(localTestModuleBundle)
-    try {
-        def configEntry = archive.getEntry('config.json')
-        if (configEntry == null || configEntry.directory || configEntry.size < 2 || configEntry.size > 65_536) {
-            throw new GradleException('The local test module bundle must contain a small config.json file.')
-        }
-        def configText = archive.getInputStream(configEntry).getText('UTF-8')
-        if (configText.startsWith('\uFEFF')) configText = configText.substring(1)
-        def config = new groovy.json.JsonSlurper().parseText(configText)
-        localTestModulePackage = String.valueOf(config.package_name ?: config.target_package ?: '')
-        if (!(localTestModulePackage ==~ /[A-Za-z0-9_.]{3,200}/)) {
-            throw new GradleException('The local test module bundle contains an invalid package name.')
-        }
-        ['classes.dex', 'libmenu_native.so'].each { requiredName ->
-            def required = archive.getEntry(requiredName)
-            if (required == null || required.directory || required.size <= 0) {
-                throw new GradleException("The local test module bundle is missing ${requiredName}.")
-            }
-        }
-    } finally {
-        archive.close()
-    }
-    localTestModuleSha256 = java.security.MessageDigest.getInstance('SHA-256')
-        .digest(localTestModuleBundle.bytes)
-        .collect { String.format('%02x', it & 0xFF) }
-        .join()
-}
-
-def generatedPrivateModuleAssets = layout.buildDirectory.dir('generated/privateModuleAssets')
-def generatedPrivateModuleAssetsDirectory = file("$buildDir/generated/privateModuleAssets")
-def generatedLocalTestModuleAssets = layout.buildDirectory.dir('generated/localTestModuleAssets')
-def generatedLocalTestModuleAssetsDirectory = file("$buildDir/generated/localTestModuleAssets")
-def generatedIdentityShellAssetsDirectory = file("$buildDir/generated/identityShellTemplateAssets")
-def preparePrivateModuleAssets = tasks.register('preparePrivateModuleAssets') {
-    outputs.dir(generatedPrivateModuleAssets)
-    if (privateModuleBundle != null) inputs.file(privateModuleBundle)
-    doLast {
-        def outputRoot = generatedPrivateModuleAssets.get().asFile
-        project.delete(outputRoot)
-        if (privateModuleBundle != null) {
-            def outputDirectory = new File(outputRoot, 'embedded-private')
-            if (!outputDirectory.mkdirs() && !outputDirectory.isDirectory()) {
-                throw new GradleException('Could not create generated private module assets.')
-            }
-            project.copy {
-                from privateModuleBundle
-                into outputDirectory
-                rename { 'module.zip' }
-            }
-        }
-    }
-}
-
-def prepareLocalTestModuleAssets = tasks.register('prepareLocalTestModuleAssets') {
-    outputs.dir(generatedLocalTestModuleAssets)
-    inputs.property('localTestModuleBundlePath', localTestModuleBundle?.path ?: '')
-    if (localTestModuleBundle != null) inputs.file(localTestModuleBundle)
-    doLast {
-        def outputRoot = generatedLocalTestModuleAssets.get().asFile
-        project.delete(outputRoot)
-        if (localTestModuleBundle != null) {
-            def outputDirectory = new File(outputRoot, 'embedded-local-test')
-            if (!outputDirectory.mkdirs() && !outputDirectory.isDirectory()) {
-                throw new GradleException('Could not create generated local test module assets.')
-            }
-            project.copy {
-                from localTestModuleBundle
-                into outputDirectory
-                rename { 'module.zip' }
-            }
-        }
-    }
-}
-
-def releaseSignerSha256 = {
-    def keyStore = java.security.KeyStore.getInstance('JKS')
-    rootProject.file(releaseStorePath).withInputStream { input ->
-        keyStore.load(input, releaseStorePassword.toCharArray())
-    }
-    def certificate = keyStore.getCertificate(releaseKeyAlias)
-    if (certificate == null) {
-        throw new GradleException("Release key alias '${releaseKeyAlias}' was not found in the configured keystore.")
-    }
-    java.security.MessageDigest.getInstance('SHA-256')
-        .digest(certificate.encoded)
-        .collect { String.format('%02X', it & 0xFF) }
-        .join()
-}
-
-gradle.taskGraph.whenReady { graph ->
-    def productionPackageRequested = graph.allTasks.any { task ->
-        task.project == project(':app') && task.name.matches('(?i).*(assemble|bundle|package|install).*Release.*')
-    }
-    if (localTestModuleBundle != null && graph.allTasks.any { task ->
-        task.project == project(':app') && task.name.matches('(?i).*(assemble|bundle|package|install).*HardenedTest.*')
-    }) {
-        throw new GradleException('An embedded local test module is not allowed in a hardened-test launcher build.')
-    }
-    if (productionPackageRequested &&
-            (!releaseSigningReady || !trustedReleaseSignerSha256.matches('[0-9A-Fa-f]{64}'))) {
-        throw new GradleException(
-            'Production release packaging requires releaseStoreFile, releaseStorePassword, ' +
-                'releaseKeyAlias, releaseKeyPassword, and the matching trustedReleaseSignerSha256.'
-        )
-    }
-    if (productionPackageRequested &&
-            !releaseSignerSha256().equalsIgnoreCase(trustedReleaseSignerSha256)) {
-        throw new GradleException(
-            'The configured release keystore does not match trustedReleaseSignerSha256. ' +
-                'Refusing to create an unusable launcher release.'
-        )
-    }
-}
-
 android {
     namespace 'com.moodtools.hub'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.moodtools'
+        applicationId 'com.moodtools.hub.nonroot'
         manifestPlaceholders = [launcherLabel: 'Jester Mods']
         minSdk 26
         targetSdk 35
-        versionCode providers.gradleProperty('launcherVersionCode').map { it.toInteger() }.getOrElse(209)
-        versionName providers.gradleProperty('launcherVersionName').getOrElse('2.0.9')
+        versionCode 209
+        versionName '2.0.9'
         buildConfigField 'String', 'UPDATE_PUBLIC_KEY_DER_BASE64', '"MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAmOi94zh3CYW3ckziou3OZ55Ve383qQdyeOVzwgVdFNA9z8wFWhkx8jj8DM1DF2hOmGGJjVKqVJAGb8BfzGUeUws24xAaOkoBUYbGS3x+UgN1PxAIJcCIxrE3M/ZiCKTgGLRYueBVBIxsosr4O1NhZW1TiFw5Az4hAvYZSchsH2bsMM3WZ7a6trL/5A9yoEiAR/rvRwbRuN34/YxpzwK7o31kkV0aH/ulCS+fjl93FrRvjMcKiZAjEJ/ONIJATKianUERQHxmeJ21BzTwI7yKkDUoFGume158K7gQ2RN8VYdskTKwzEurg2KSmct1aVX6VsTQkdhe2/yq5jcf8AH9kOdfvQl+lXaG/xxzPjtvEUdtUlj3ue1Gs26DWNxsgH6pbsE2b6Js1gYBc0qQZfxYwshvuUadHm9NDPwqwyMNCaAU2R12Ezf/8GuogIWwNx2nNCEekxIEnLLHVi/rEFtgY8SY1skhqjma9Wbg6j+zwTkJdeSd24OK03B2W+9hEMQ1AgMBAAE="'
         buildConfigField 'String', 'ACCESS_LEASE_PUBLIC_KEY_DER_BASE64', '"MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAsxlNkIQ/9cHCQKHvDN2sgMvFxqqYTnv3LXLGXev6X/WLjH51LFEzHAj7KLsm9cW/+AopxFrksfiSuVZBZXdENI0ZTr82zcR4rxFJnbO9w7VMvSnBziXNmFe43/tVNW5n7HJ9H+R+7/XFS0npq1tixa2Jdono1NhuGYczuAJDtFXdbwE3liJnpZSHgcT5irzOPQ/HKInB/JnNslyA9gFqoGcSutArpi3bW81Q/GLShOkUmQxLK8oqzVGmd7FcTJVfVWgsNDOQrqrZ0mqDmy4Zpt7S8ZD+7K7k92a4oBpzBFlALL5O33r777rAb6bymNbjNImVXKl0AGl465dbj5lIhAnKV/buUXcI+8Fx4StF5xXUVL7bC3KV/qNAXTIIHx0CcLhmMgtAgtBmRLZzIgS2EKeMuoEEglefwp0XJIGE2YkrmgjeF7/4qp0Xq/xN2mfNhwR8i8I49nJXfp8M9Dv7zLZe23WO2ATSaCbGqkhjI7UbnO5Dcyhnu/zq+pX1AypfAgMBAAE="'
-        buildConfigField 'boolean', 'PRIVATE_MODULE_ENABLED', privateModuleBundle != null ? 'true' : 'false'
-        buildConfigField 'String', 'PRIVATE_MODULE_PACKAGE', '"' + privateModulePackage + '"'
-        buildConfigField 'String', 'PRIVATE_MODULE_SCOPE', '"' + privateModuleScopeValue + '"'
-        buildConfigField 'String', 'PRIVATE_MODULE_SHA256', '"' + privateModuleSha256 + '"'
-        buildConfigField 'boolean', 'LOCAL_TEST_MODULE_ENABLED', localTestModuleBundle != null ? 'true' : 'false'
-        buildConfigField 'String', 'LOCAL_TEST_MODULE_PACKAGE', '"' + localTestModulePackage + '"'
-        buildConfigField 'String', 'LOCAL_TEST_MODULE_SHA256', '"' + localTestModuleSha256 + '"'
+        buildConfigField 'boolean', 'PRIVATE_MODULE_ENABLED', 'false'
+        buildConfigField 'String', 'PRIVATE_MODULE_PACKAGE', '""'
+        buildConfigField 'String', 'PRIVATE_MODULE_SCOPE', '""'
+        buildConfigField 'String', 'PRIVATE_MODULE_SHA256', '""'
+        buildConfigField 'boolean', 'LOCAL_TEST_MODULE_ENABLED', 'false'
+        buildConfigField 'String', 'LOCAL_TEST_MODULE_PACKAGE', '""'
+        buildConfigField 'String', 'LOCAL_TEST_MODULE_SHA256', '""'
+        buildConfigField 'boolean', 'IS_ROOT_MODE', 'false'
+        buildConfigField 'boolean', 'RUNTIME_SECURITY_ENFORCED', 'false'
+        buildConfigField 'String', 'TRUSTED_SIGNER_SHA256', '"ed994d5bc189fa7370f9d995fa427959254787c6055181cd68e79ce02b930cbb"'
+        buildConfigField 'String', 'SECURITY_BUILD_CHANNEL', '"debug"'
+        buildConfigField 'String', 'FLAVOR', '"nonroot"'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables {
             useSupportLibrary true
         }
-
     }
-
-    externalNativeBuild {
-        cmake {
-            path file('src/main/cpp/CMakeLists.txt')
-            version '3.22.1'
-        }
-    }
-
-    flavorDimensions += 'executionMode'
 
     signingConfigs {
-        if (releaseSigningReady) {
-            release {
-                storeFile rootProject.file(releaseStorePath)
-                storePassword releaseStorePassword
-                keyAlias releaseKeyAlias
-                keyPassword releaseKeyPassword
-                // Keep legacy JAR signing for older/root installation flows while
-                // retaining modern APK Signature Scheme v2 compatibility.
-                enableV1Signing true
-                enableV2Signing true
-                enableV3Signing false
-                enableV4Signing false
-            }
-        }
-    }
-
-    productFlavors {
-        root {
-            dimension 'executionMode'
-            applicationIdSuffix '.hub.root'
-            buildConfigField 'boolean', 'IS_ROOT_MODE', 'true'
-            ndk {
-                abiFilters 'arm64-v8a'
-            }
-            externalNativeBuild {
-                cmake {
-                    cppFlags '-DEXECUTION_MODE_ROOT=1'
-                }
-            }
-        }
-
-        nonroot {
-            dimension 'executionMode'
-            applicationId 'com.moodtools.hub.nonroot'
-            buildConfigField 'boolean', 'IS_ROOT_MODE', 'false'
-            ndk {
-                abiFilters 'arm64-v8a', 'armeabi-v7a'
-            }
-            externalNativeBuild {
-                cmake {
-                    cppFlags '-DEXECUTION_MODE_NONROOT=1'
-                }
-            }
+        debugConfig {
+            storeFile file("${rootDir}/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
         }
     }
 
     buildTypes {
         debug {
-            // Keep local/device-test builds beside the production launcher instead of
-            // replacing its package, data, and signing identity during adb install -r.
-            applicationIdSuffix '.debug'
-            versionNameSuffix '-debug'
-            manifestPlaceholders = [launcherLabel: 'Jester Mods Debug']
+            signingConfig signingConfigs.debugConfig
             debuggable true
             minifyEnabled false
             shrinkResources false
-            buildConfigField 'boolean', 'RUNTIME_SECURITY_ENFORCED', 'false'
-            buildConfigField 'String', 'TRUSTED_SIGNER_SHA256', '"' + debugSignerSha256 + '"'
-            buildConfigField 'String', 'SECURITY_BUILD_CHANNEL', '"debug"'
         }
 
         release {
             debuggable false
-            jniDebuggable false
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            buildConfigField 'boolean', 'RUNTIME_SECURITY_ENFORCED', 'true'
-            buildConfigField 'String', 'TRUSTED_SIGNER_SHA256', '"' + trustedReleaseSignerSha256 + '"'
-            buildConfigField 'String', 'SECURITY_BUILD_CHANNEL', '"release"'
-            if (releaseSigningReady) signingConfig signingConfigs.release
-        }
-
-        hardenedTest {
-            initWith release
-            debuggable false
-            jniDebuggable false
-            minifyEnabled true
-            shrinkResources true
-            signingConfig signingConfigs.debug
-            matchingFallbacks = ['release']
-            buildConfigField 'boolean', 'RUNTIME_SECURITY_ENFORCED', 'true'
-            buildConfigField 'String', 'TRUSTED_SIGNER_SHA256', '"' + debugSignerSha256 + '"'
-            buildConfigField 'String', 'SECURITY_BUILD_CHANNEL', '"release"'
         }
     }
 
@@ -332,12 +73,6 @@ android {
         buildConfig true
     }
 
-    sourceSets {
-        main.assets.srcDir(generatedPrivateModuleAssetsDirectory)
-        main.assets.srcDir(generatedLocalTestModuleAssetsDirectory)
-        nonroot.assets.srcDir(new File(generatedIdentityShellAssetsDirectory, 'nonroot'))
-    }
-
     packaging {
         jniLibs {
             useLegacyPackaging false
@@ -348,42 +83,8 @@ android {
     }
 }
 
-// Every non-root variant embeds the same release-grade template. A single producer avoids
-// cross-variant output races and makes debug unit tests inspect the minified production shell.
-def prepareIdentityShellAsset = tasks.register('prepareIdentityShellAsset', Sync) {
-    dependsOn(':identity-shell-template:assembleRelease')
-    from(project(':identity-shell-template').layout.buildDirectory.dir('outputs/apk/release')) {
-        include('*.apk')
-        rename { 'template.apk' }
-    }
-    into(new File(generatedIdentityShellAssetsDirectory, 'nonroot/identity-shell'))
-}
-
-tasks.configureEach { task ->
-    if ((task.name.startsWith('merge') && task.name.endsWith('Assets')) ||
-            task.name.toLowerCase(java.util.Locale.ROOT).contains('lint')) {
-        task.dependsOn(preparePrivateModuleAssets)
-        task.dependsOn(prepareLocalTestModuleAssets)
-    }
-    if ((task.name.startsWith('mergeNonroot') && task.name.endsWith('Assets')) ||
-            (task.name.toLowerCase(java.util.Locale.ROOT).contains('lint') &&
-                task.name.toLowerCase(java.util.Locale.ROOT).contains('nonroot')) ||
-            task.name == 'testNonrootDebugUnitTest') {
-        task.dependsOn(prepareIdentityShellAsset)
-        if (task.name == 'testNonrootDebugUnitTest') {
-            task.inputs.file(new File(
-                generatedIdentityShellAssetsDirectory,
-                'nonroot/identity-shell/template.apk'
-            ))
-        }
-    }
-}
-
 dependencies {
-    nonrootImplementation project(':Bcore')
-    // Verify downloaded companion games from their APK bytes instead of relying on OEM
-    // PackageManager archive signer metadata, which can be empty or stale on some devices.
-    // Non-root direct-patch modules also use this to verify their signed APK clusters.
+    implementation project(':Bcore')
     implementation 'com.android.tools.build:apksig:9.0.1'
 
     implementation platform('androidx.compose:compose-bom:2024.09.03')
@@ -404,8 +105,4 @@ dependencies {
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20260814'
-    androidTestImplementation platform('androidx.compose:compose-bom:2024.09.03')
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }

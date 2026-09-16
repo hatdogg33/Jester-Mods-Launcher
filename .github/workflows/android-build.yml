@@ -94,17 +94,12 @@ jobs:
 
       - name: Build ${{ matrix.flavor }} release APK
         run: |
-          if [ "${{ matrix.flavor }}" = "root" ]; then
-            TASK=assembleRootRelease
-          else
-            TASK=assembleNonrootRelease
-          fi
-          ./gradlew :app:$TASK --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
 
       - name: Verify APK output
         run: |
           set -euo pipefail
-          APK=$(find "app/build/outputs/apk/${{ matrix.flavor }}/release" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          APK=$(find "app/build/outputs/apk" -type f -name '*.apk' -print -quit)
           test -n "$APK" || { echo "No release APK produced" >&2; exit 1; }
           test -s "$APK"
           echo "APK: $APK"
@@ -113,7 +108,7 @@ jobs:
       - name: Verify APK signature
         run: |
           set -euo pipefail
-          APK=$(find "app/build/outputs/apk/${{ matrix.flavor }}/release" -maxdepth 1 -type f -name '*.apk' -print -quit)
+          APK=$(find "app/build/outputs/apk" -type f -name '*.apk' -print -quit)
           APKSIGNER="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}/apksigner"
           test -x "$APKSIGNER" || { echo "apksigner not found at $APKSIGNER" >&2; exit 1; }
           "$APKSIGNER" verify --verbose "$APK"
@@ -123,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jester-${{ matrix.flavor }}-release
-          path: app/build/outputs/apk/${{ matrix.flavor }}/release/*.apk
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 30
 
