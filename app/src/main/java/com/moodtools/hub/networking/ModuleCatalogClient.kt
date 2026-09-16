@@ -199,7 +199,7 @@ class ModuleCatalogClient(
                 val updateStatusValue = item.optString("updateStatus").takeIf(String::isNotBlank)
                 val updateStatus = ModuleUpdateStatus.fromCatalog(updateStatusValue)
                 val statusChangedAt = parseEpochSeconds(item, "statusChangedAt")
-                require((updateStatusValue == null) == (statusChangedAt == null))
+                require(statusChangedAt == null || updateStatusValue != null)
                 val access = if (privateScope == null) {
                     ModuleAccess.fromPublicCatalog(
                         item.optString("access").takeIf(String::isNotBlank)
@@ -275,9 +275,11 @@ class ModuleCatalogClient(
         val features = item.optJSONObject("features") ?: return null
         val path = features.getString("path")
         require(path == "/api/launcher-module-features/$slug/$build")
+        val count = features.optInt("count", 0).also { require(it in 0..MAX_FEATURES) }
+        if (count <= 0) return null
         return com.moodtools.hub.modules.CatalogModuleFeatures(
             path = path,
-            count = features.getInt("count").also { require(it in 1..MAX_FEATURES) }
+            count = count
         )
     }
 
@@ -337,16 +339,18 @@ class ModuleCatalogClient(
         if (install == null) {
             return GameInstallSource.PlayStore(playStoreUrl(packageName))
         }
-        return when (install.getString("source")) {
-            "play_store" -> {
+        val source = install.optString("source").trim().lowercase()
+        return when {
+            source.isEmpty() || source == "play_store" -> {
                 val url = install.optString("url", playStoreUrl(packageName))
-                val parsed = URL(url)
-                require(parsed.protocol == "https" && parsed.host == PLAY_STORE_HOST)
-                require(parsed.path == "/store/apps/details")
-                require(parsed.query.orEmpty().split('&').any { it == "id=$packageName" })
-                GameInstallSource.PlayStore(url)
+                val parsed = runCatching { URL(url) }.getOrNull()
+                if (parsed != null && parsed.protocol == "https" && parsed.host == PLAY_STORE_HOST) {
+                    GameInstallSource.PlayStore(url)
+                } else {
+                    GameInstallSource.PlayStore(playStoreUrl(packageName))
+                }
             }
-            "direct" -> {
+            source == "direct" -> {
                 val versionCode = install.getLong("versionCode").also { require(it > 0) }
                 val path = install.getString("path")
                 val format = when (install.optString("format").trim().lowercase()) {
@@ -372,7 +376,7 @@ class ModuleCatalogClient(
                     format = format
                 )
             }
-            else -> error("Unsupported game install source")
+            else -> GameInstallSource.PlayStore(playStoreUrl(packageName))
         }
     }
 
