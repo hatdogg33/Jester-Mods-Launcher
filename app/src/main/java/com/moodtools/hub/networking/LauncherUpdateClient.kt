@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.FileProvider
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -229,7 +230,7 @@ class LauncherUpdateClient(private val context: Context) {
         require(payload.getInt("schema") == 1)
         require(payload.getString("audience") == "moodtools-standalone-launcher-changelog")
         val currentBuild = payload.getLong("currentBuild").also { require(it > 0) }
-        val source = payload.getJSONArray("entries")
+        val source = payload.optJSONArray("entries") ?: payload.optJSONArray("items") ?: JSONArray()
         require(source.length() in 1..MAX_CHANGELOG_ENTRIES)
         var previousBuild = Long.MAX_VALUE
         var previousPublishedAt = Long.MAX_VALUE
@@ -242,11 +243,11 @@ class LauncherUpdateClient(private val context: Context) {
                 val notes = item.getString("notes")
                 val publishedAt = item.getLong("publishedAt")
                 totalCharacters += notes.length
-                require(build > 0 && build < previousBuild)
+                require(build > 0 && build <= previousBuild)
                 require(version.isNotBlank() && version.length <= 64)
                 require(notes.length <= MAX_CHANGELOG_ENTRY_CHARACTERS)
                 require(totalCharacters <= MAX_CHANGELOG_CHARACTERS)
-                require(publishedAt < previousPublishedAt)
+                require(publishedAt <= previousPublishedAt)
                 require(publishedAt in MIN_CHANGELOG_EPOCH_SECONDS..MAX_CHANGELOG_EPOCH_SECONDS)
                 add(LauncherChangelogEntry(build, version, notes, publishedAt))
                 previousBuild = build
