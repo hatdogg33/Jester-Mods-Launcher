@@ -26,7 +26,7 @@ android {
         buildConfigField 'String', 'LOCAL_TEST_MODULE_SHA256', '""'
         buildConfigField 'boolean', 'IS_ROOT_MODE', 'false'
         buildConfigField 'boolean', 'RUNTIME_SECURITY_ENFORCED', 'false'
-        def signerSha = project.findProperty('trustedReleaseSignerSha256') ?: '54db59fd003fcbceb9fad8808a6eacb10cc9ab58e6be891dc77ef33a62522642'
+        def signerSha = project.findProperty('trustedReleaseSignerSha256') ?: '54db59fd003fcbceb9fad8808a6eacb10cc9ab58e6be891dc77ef33a62522642,a9faca798e03b4da226240460c8eedc8b1f5b8c04f88525f4ffd8ea2f9fe4f8e'
         buildConfigField 'String', 'TRUSTED_SIGNER_SHA256', "\"${signerSha}\""
         buildConfigField 'String', 'SECURITY_BUILD_CHANNEL', '"release"'
         buildConfigField 'String', 'FLAVOR', '"nonroot"'
