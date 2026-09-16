@@ -30,9 +30,6 @@ jobs:
       fail-fast: false
       matrix:
         flavor: [root, nonroot]
-    outputs:
-      VERSION: ${{ steps.version.outputs.VERSION }}
-      VERSION_CODE: ${{ steps.version.outputs.VERSION_CODE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -160,8 +157,8 @@ jobs:
           name: jester-nonroot-release
           path: artifacts/nonroot
 
-      - name: Compute hashes and sizes
-        id: hashes
+      - name: Compute version and hashes
+        id: info
         run: |
           ROOT_APK=$(find artifacts/root -name '*.apk' -print -quit)
           NONROOT_APK=$(find artifacts/nonroot -name '*.apk' -print -quit)
@@ -172,29 +169,36 @@ jobs:
           ROOT_SIZE=$(stat -c%s "$ROOT_APK")
           NONROOT_SIZE=$(stat -c%s "$NONROOT_APK")
 
+          # Extract version from gradle.properties in the checked-out repo
+          VERSION=$(grep '^launcherVersionName=' ../../gradle.properties | cut -d'=' -f2)
+          VERSION_CODE=$(grep '^launcherVersionCode=' ../../gradle.properties | cut -d'=' -f2)
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "ROOT_SHA256=$ROOT_SHA256" >> $GITHUB_OUTPUT
           echo "NONROOT_SHA256=$NONROOT_SHA256" >> $GITHUB_OUTPUT
           echo "ROOT_SIZE=$ROOT_SIZE" >> $GITHUB_OUTPUT
           echo "NONROOT_SIZE=$NONROOT_SIZE" >> $GITHUB_OUTPUT
 
-          echo "Root: $ROOT_APK ($ROOT_SIZE bytes, $ROOT_SHA256)"
-          echo "Non-root: $NONROOT_APK ($NONROOT_SIZE bytes, $NONROOT_SHA256)"
+          echo "Version: $VERSION ($VERSION_CODE)"
+          echo "Root: $ROOT_SIZE bytes, $ROOT_SHA256"
+          echo "Non-root: $NONROOT_SIZE bytes, $NONROOT_SHA256"
 
       - name: Upload Root APK to Backend
-        if: ${{ steps.hashes.outputs.ROOT_SHA256 != '' }}
+        if: ${{ steps.info.outputs.VERSION_CODE != '' }}
         run: |
           ROOT_APK=$(find artifacts/root -name '*.apk' -print -quit)
-          curl -X POST "${ADMIN_API_URL}/api/_admin/upload?path=launcher/root/${{ needs.build-release.outputs.VERSION_CODE }}.apk&type=application/vnd.android.package-archive" \
+          curl -X POST "${ADMIN_API_URL}/api/_admin/upload?path=launcher/root/${{ steps.info.outputs.VERSION_CODE }}.apk&type=application/vnd.android.package-archive" \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
             -H "Content-Type: application/vnd.android.package-archive" \
             --data-binary @"$ROOT_APK" \
             --fail --silent --show-error
 
       - name: Upload Non-root APK to Backend
-        if: ${{ steps.hashes.outputs.NONROOT_SHA256 != '' }}
+        if: ${{ steps.info.outputs.VERSION_CODE != '' }}
         run: |
           NONROOT_APK=$(find artifacts/nonroot -name '*.apk' -print -quit)
-          curl -X POST "${ADMIN_API_URL}/api/_admin/upload?path=launcher/nonroot/${{ needs.build-release.outputs.VERSION_CODE }}.apk&type=application/vnd.android.package-archive" \
+          curl -X POST "${ADMIN_API_URL}/api/_admin/upload?path=launcher/nonroot/${{ steps.info.outputs.VERSION_CODE }}.apk&type=application/vnd.android.package-archive" \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
             -H "Content-Type: application/vnd.android.package-archive" \
             --data-binary @"$NONROOT_APK" \
@@ -202,12 +206,12 @@ jobs:
 
       - name: Create Release Record
         env:
-          VERSION: ${{ needs.build-release.outputs.VERSION }}
-          VERSION_CODE: ${{ needs.build-release.outputs.VERSION_CODE }}
-          ROOT_SHA256: ${{ steps.hashes.outputs.ROOT_SHA256 }}
-          NONROOT_SHA256: ${{ steps.hashes.outputs.NONROOT_SHA256 }}
-          ROOT_SIZE: ${{ steps.hashes.outputs.ROOT_SIZE }}
-          NONROOT_SIZE: ${{ steps.hashes.outputs.NONROOT_SIZE }}
+          VERSION: ${{ steps.info.outputs.VERSION }}
+          VERSION_CODE: ${{ steps.info.outputs.VERSION_CODE }}
+          ROOT_SHA256: ${{ steps.info.outputs.ROOT_SHA256 }}
+          NONROOT_SHA256: ${{ steps.info.outputs.NONROOT_SHA256 }}
+          ROOT_SIZE: ${{ steps.info.outputs.ROOT_SIZE }}
+          NONROOT_SIZE: ${{ steps.info.outputs.NONROOT_SIZE }}
         run: |
           curl -X POST "${ADMIN_API_URL}/api/_admin/releases" \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
@@ -229,8 +233,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.build-release.outputs.VERSION }}
-          name: "Jester Mods Launcher v${{ needs.build-release.outputs.VERSION }}"
+          tag_name: v${{ steps.info.outputs.VERSION }}
+          name: "Jester Mods Launcher v${{ steps.info.outputs.VERSION }}"
           files: |
             artifacts/root/*.apk
             artifacts/nonroot/*.apk
