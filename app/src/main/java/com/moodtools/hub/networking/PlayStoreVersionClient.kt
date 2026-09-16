@@ -185,7 +185,7 @@ internal fun parsePlayStoreVersionResults(
     require(body.optBoolean("ok", false) && body.optInt("schema") == 1) {
         "Invalid Play Store batch response"
     }
-    val results = body.getJSONArray("results")
+    val results = body.optJSONArray("results") ?: body.optJSONArray("versions") ?: JSONArray()
     require(results.length() <= expectedPackageNames.size)
     return buildMap {
         for (index in 0 until results.length()) {
