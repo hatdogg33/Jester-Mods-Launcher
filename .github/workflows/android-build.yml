@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   JAVA_VERSION: '17'
@@ -231,6 +231,6 @@ jobs:
           tag_name: v${{ steps.info.outputs.VERSION }}
           name: "Jester Mods Launcher v${{ steps.info.outputs.VERSION }}"
           files: |
-            artifacts/root/*.apk
-            artifacts/nonroot/*.apk
+            artifacts/root/**/*.apk
+            artifacts/nonroot/**/*.apk
           generate_release_notes: true
