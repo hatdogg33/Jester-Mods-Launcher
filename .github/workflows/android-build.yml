@@ -170,8 +170,8 @@ jobs:
           NONROOT_SIZE=$(stat -c%s "$NONROOT_APK")
 
           # Extract version from gradle.properties in the checked-out repo
-          VERSION=$(grep '^launcherVersionName=' ../../gradle.properties | cut -d'=' -f2)
-          VERSION_CODE=$(grep '^launcherVersionCode=' ../../gradle.properties | cut -d'=' -f2)
+          VERSION=$(grep '^launcherVersionName=' gradle.properties | cut -d'=' -f2)
+          VERSION_CODE=$(grep '^launcherVersionCode=' gradle.properties | cut -d'=' -f2)
 
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
