@@ -232,8 +232,6 @@ class LauncherUpdateClient(private val context: Context) {
         val currentBuild = payload.getLong("currentBuild").also { require(it > 0) }
         val source = payload.optJSONArray("entries") ?: payload.optJSONArray("items") ?: JSONArray()
         require(source.length() in 1..MAX_CHANGELOG_ENTRIES)
-        var previousBuild = Long.MAX_VALUE
-        var previousPublishedAt = Long.MAX_VALUE
         var totalCharacters = 0
         return buildList {
             for (index in 0 until source.length()) {
@@ -243,17 +241,15 @@ class LauncherUpdateClient(private val context: Context) {
                 val notes = item.getString("notes")
                 val publishedAt = item.getLong("publishedAt")
                 totalCharacters += notes.length
-                require(build > 0 && build <= previousBuild)
+                require(build > 0)
                 require(version.isNotBlank() && version.length <= 64)
                 require(notes.length <= MAX_CHANGELOG_ENTRY_CHARACTERS)
                 require(totalCharacters <= MAX_CHANGELOG_CHARACTERS)
-                require(publishedAt <= previousPublishedAt)
                 require(publishedAt in MIN_CHANGELOG_EPOCH_SECONDS..MAX_CHANGELOG_EPOCH_SECONDS)
                 add(LauncherChangelogEntry(build, version, notes, publishedAt))
-                previousBuild = build
-                previousPublishedAt = publishedAt
             }
-        }.also { require(it.first().build == currentBuild) }
+        }.sortedWith(compareByDescending<LauncherChangelogEntry> { it.publishedAtEpochSeconds }.thenByDescending { it.build })
+            .also { require(it.any { entry -> entry.build == currentBuild }) }
     }
 
     private fun parse(envelope: JSONObject, testChannel: Boolean): LauncherRelease {
