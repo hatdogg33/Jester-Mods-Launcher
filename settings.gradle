@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'VOIDMOD1'
+rootProject.name = 'Jester Mods'
 include ':app'
 include ':Bcore'
 

@@ -2,7 +2,7 @@
 
 ## Supported release
 
-Security fixes target the latest official VOIDMOD1 Root and Non-root
+Security fixes target the latest official Jester Mods Root and Non-root
 launcher release. Older builds may be denied protected module downloads when
 their access protocol no longer meets the current server policy.
 

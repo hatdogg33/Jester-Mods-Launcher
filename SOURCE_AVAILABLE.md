@@ -2,7 +2,7 @@
 
 This repository is published for transparency and security review. Unless a
 file or directory carries a separate license, no license is granted to copy,
-redistribute, sell, rebrand, or publish modified VOIDMOD1 code or binaries.
+redistribute, sell, rebrand, or publish modified Jester Mods code or binaries.
 All rights are reserved by their respective copyright holders.
 
 Third-party directories and components remain governed by their own license
