@@ -244,7 +244,7 @@ class LauncherAccessManager(context: Context) {
         val accessVersion = activeAccessVersion()
         if (accessVersion == ACCESS_VERSION && offlineLeaseText.isEmpty()) {
             clearLease()
-            return null
+            return recoverLease(ACCESS_VERSION)
         }
         if (accessVersion == ACCESS_VERSION && offlineLeaseText.isNotEmpty()) {
             val proofIdentity = proofKeys.identity()
@@ -259,7 +259,7 @@ class LauncherAccessManager(context: Context) {
             }.getOrNull()
             if (claims == null || claims.issuedAt != issuedAt || claims.expiresAt < issuedAt) {
                 clearLease()
-                return null
+                return recoverLease(ACCESS_VERSION)
             }
             val clockStatus = LauncherOfflineLeaseVerifier.clockStatus(
                 issuedAt = issuedAt,
@@ -284,7 +284,7 @@ class LauncherAccessManager(context: Context) {
                         )
                         if (!response.optBoolean("ok")) {
                             clearLease()
-                            null
+                            recoverLease(ACCESS_VERSION)
                         } else {
                             acceptProtocol4Lease(response, proofIdentity, requireRecoveryBound = true)
                         }
@@ -300,7 +300,7 @@ class LauncherAccessManager(context: Context) {
                 }
                 LauncherLeaseClockStatus.EXPIRED -> {
                     clearLease()
-                    null
+                    recoverLease(ACCESS_VERSION)
                 }
                 LauncherLeaseClockStatus.ROLLED_BACK -> null
             }
@@ -310,7 +310,7 @@ class LauncherAccessManager(context: Context) {
             (lastSeen == 0L || now + CLOCK_SKEW_SECONDS >= lastSeen)
         if (!valid) {
             clearLease()
-            return null
+            return recoverLease(DEVICE_LOCK_ACCESS_VERSION)
         }
         val response = postJson(
             "$BASE_URL/api/launcher/access",
@@ -324,13 +324,13 @@ class LauncherAccessManager(context: Context) {
         if (!response.optBoolean("ok") || response.optLong("issuedAt") != issuedAt ||
             response.optLong("expiresAt") != expiresAt) {
             clearLease()
-            return null
+            return recoverLease(DEVICE_LOCK_ACCESS_VERSION)
         }
         rememberLeaseClock(now)
         return LauncherLease(issuedAt, expiresAt)
     }
 
-    private fun recoverLease(accessVersion: Int = ACCESS_VERSION): LauncherLease? {
+    fun recoverLease(accessVersion: Int = ACCESS_VERSION): LauncherLease? {
         val proofIdentity = proofKeys.identity()
         val response = postJson(
             "$BASE_URL/api/launcher/recover",

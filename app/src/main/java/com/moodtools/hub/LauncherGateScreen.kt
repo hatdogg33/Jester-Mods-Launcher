@@ -683,6 +683,16 @@ private fun DefaultGateContent(
             if (presentation is LauncherGatePresentation.Locked) {
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(
+                    onClick = onRetry,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 13.dp),
+                    border = BorderStroke(1.dp, GateAccent.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GateAccent)
+                ) {
+                    Text("I already unlocked (Check status)", fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
                     onClick = onCopySupportCode,
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(vertical = 13.dp),

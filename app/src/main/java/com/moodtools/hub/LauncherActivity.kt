@@ -1444,7 +1444,6 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
     }
 
     fun retryAccessRecovery() {
-        if (_startupState.value !is LauncherStartupState.ConnectionRequired) return
         viewModelScope.launch(Dispatchers.IO) { checkLauncherAccess() }
     }
 
@@ -1487,7 +1486,18 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
 
     fun onUnlockBrowserReturnedWithoutCallback() {
         if (_startupState.value is LauncherStartupState.CheckingAccess) {
-            _startupState.value = LauncherStartupState.Locked()
+            viewModelScope.launch(Dispatchers.IO) {
+                val transitionStartedAt = SystemClock.elapsedRealtime()
+                val lease = runCatching { accessManager.recoverLease() }.getOrNull()
+                awaitMinimumInternetTransition(transitionStartedAt)
+                if (lease != null) {
+                    completeAuthorizedStartup(lease.expiresAt)
+                } else {
+                    _startupState.value = LauncherStartupState.Locked(
+                        "Unlock incomplete. Complete the free Linkvertise route on the website, then tap Try again."
+                    )
+                }
+            }
         }
     }
 
