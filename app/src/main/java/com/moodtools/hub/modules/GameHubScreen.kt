@@ -52,6 +52,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -2892,7 +2893,7 @@ private fun LauncherChangelogDetailScreen(
         if (filteredEntries.isEmpty()) {
             item { ChangelogMessageCard("No launcher releases match “${query.trim()}”.") }
         } else {
-            items(filteredEntries, key = { "launcher-full-${it.build}" }) { entry ->
+            itemsIndexed(filteredEntries, key = { index, entry -> "launcher-full-${entry.build}-$index" }) { _, entry ->
                 LauncherChangelogCompactCard(entry = entry, installedBuild = installedBuild)
             }
         }
@@ -2978,7 +2979,7 @@ private fun ModuleChangelogDetailScreen(
             if (filteredEntries.isEmpty()) {
                 item { ChangelogMessageCard("No add-on releases match “${query.trim()}”.") }
             } else {
-                items(filteredEntries, key = { "full-${moduleHistory.packageName}-${it.build}" }) { entry ->
+                itemsIndexed(filteredEntries, key = { index, entry -> "full-${moduleHistory.packageName}-${entry.build}-$index" }) { _, entry ->
                     ModuleChangelogCompactCard(
                         entry = entry,
                         highlighted = entry.build == moduleHistory.currentBuild
@@ -3218,7 +3219,7 @@ private fun ChangelogEntryCard(title: String, meta: String, notes: String, highl
 
 @Composable
 private fun LauncherChangelogCompactCard(entry: LauncherChangelogEntry, installedBuild: Long) {
-    var expanded by rememberSaveable(entry.build) { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
             .background(

@@ -60,6 +60,6 @@ internal object LauncherPrivateLeaseVerifier {
     private const val LEASE_VERSION = 1
     private const val ACCESS_VERSION = 4
     private const val MAX_OFFLINE_TTL_SECONDS = 7L * 24L * 60L * 60L
-    private const val MAX_MANAGED_ACCESS_TTL_SECONDS = 10L * 365L * 24L * 60L * 60L
+    private const val MAX_MANAGED_ACCESS_TTL_SECONDS = 15L * 365L * 24L * 60L * 60L
     private const val CLOCK_SKEW_SECONDS = 5L * 60L
 }

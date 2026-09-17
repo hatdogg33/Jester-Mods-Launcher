@@ -58,14 +58,13 @@ class LauncherAccessManager(context: Context) {
     private val proofKeys = LauncherProofKeyManager(appContext)
     private val attestationKeys = LauncherAttestationKeyManager(appContext)
     private val stableAndroidId: String by lazy {
-        Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
-            ?.trim()
-            .orEmpty()
-            .also {
-                require(it.isNotEmpty() && it != LEGACY_BROKEN_ANDROID_ID) {
-                    "This device did not provide a stable Android identity"
-                }
-            }
+        val raw = Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)?.trim().orEmpty()
+        if (raw.isNotEmpty() && raw != LEGACY_BROKEN_ANDROID_ID) {
+            raw
+        } else {
+            preferences.getString("fallback_android_id", null)?.takeIf { it.isNotEmpty() }
+                ?: randomId().also { preferences.edit().putString("fallback_android_id", it).apply() }
+        }
     }
     val installationId: String
         get() = preferences.getString(INSTALLATION_ID, null)?.takeIf { it.matches(ID_PATTERN) }
@@ -245,7 +244,7 @@ class LauncherAccessManager(context: Context) {
         val accessVersion = activeAccessVersion()
         if (accessVersion == ACCESS_VERSION && offlineLeaseText.isEmpty()) {
             clearLease()
-            return recoverLease(ACCESS_VERSION)
+            return null
         }
         if (accessVersion == ACCESS_VERSION && offlineLeaseText.isNotEmpty()) {
             val proofIdentity = proofKeys.identity()
@@ -258,9 +257,9 @@ class LauncherAccessManager(context: Context) {
                     expectedProofKeyId = proofIdentity.keyId
                 )
             }.getOrNull()
-            if (claims == null || claims.issuedAt != issuedAt || claims.expiresAt != expiresAt) {
+            if (claims == null || claims.issuedAt != issuedAt || claims.expiresAt < issuedAt) {
                 clearLease()
-                return recoverLease(ACCESS_VERSION)
+                return null
             }
             val clockStatus = LauncherOfflineLeaseVerifier.clockStatus(
                 issuedAt = issuedAt,
@@ -285,7 +284,7 @@ class LauncherAccessManager(context: Context) {
                         )
                         if (!response.optBoolean("ok")) {
                             clearLease()
-                            recoverLease(ACCESS_VERSION)
+                            null
                         } else {
                             acceptProtocol4Lease(response, proofIdentity, requireRecoveryBound = true)
                         }
@@ -301,7 +300,7 @@ class LauncherAccessManager(context: Context) {
                 }
                 LauncherLeaseClockStatus.EXPIRED -> {
                     clearLease()
-                    recoverLease(ACCESS_VERSION)
+                    null
                 }
                 LauncherLeaseClockStatus.ROLLED_BACK -> null
             }
@@ -311,7 +310,7 @@ class LauncherAccessManager(context: Context) {
             (lastSeen == 0L || now + CLOCK_SKEW_SECONDS >= lastSeen)
         if (!valid) {
             clearLease()
-            return recoverLease(DEVICE_LOCK_ACCESS_VERSION)
+            return null
         }
         val response = postJson(
             "$BASE_URL/api/launcher/access",
@@ -325,7 +324,7 @@ class LauncherAccessManager(context: Context) {
         if (!response.optBoolean("ok") || response.optLong("issuedAt") != issuedAt ||
             response.optLong("expiresAt") != expiresAt) {
             clearLease()
-            return recoverLease(DEVICE_LOCK_ACCESS_VERSION)
+            return null
         }
         rememberLeaseClock(now)
         return LauncherLease(issuedAt, expiresAt)
@@ -346,32 +345,38 @@ class LauncherAccessManager(context: Context) {
                 .put("proofKeyId", proofIdentity.keyId)
         )
         if (!response.optBoolean("ok")) return null
-        val digitalKey = response.optString("digitalKey")
-        val issuedAt = response.optLong("issuedAt")
-        val expiresAt = response.optLong("expiresAt")
-        require(validManagedAccessWindow(issuedAt, expiresAt)) {
-            "The recovered digital key is invalid"
-        }
-        val offlineLease = if (accessVersion == ACCESS_VERSION) {
-            response.getJSONObject("offlineLease").also {
-                val claims = LauncherOfflineLeaseVerifier.verify(
-                    envelope = it,
-                    digitalKey = digitalKey,
-                    expectedDeviceId = deviceId,
-                    expectedFlavor = BuildConfig.FLAVOR,
-                    expectedProofKeyId = proofIdentity.keyId
-                )
-                require(claims.issuedAt == issuedAt && claims.expiresAt == expiresAt)
-            }.toString()
-        } else null
-        if (accessVersion == ACCESS_VERSION) {
-            require(response.optBoolean("recoveryBound")) {
-                "The recovered lease is not bound to this device recovery identity"
+        return try {
+            val digitalKey = response.optString("digitalKey")
+            val issuedAt = response.optLong("issuedAt")
+            val rawExpiresAt = response.optLong("expiresAt")
+            require(validManagedAccessWindow(issuedAt, rawExpiresAt)) {
+                "The recovered digital key is invalid"
             }
-            preferences.edit().putString(RECOVERY_BOUND_KEY, proofIdentity.keyId).apply()
+            val effectiveExpiresAt = minOf(rawExpiresAt, issuedAt + LINKVERTISE_UNLOCK_TTL_SECONDS)
+            val offlineLease = if (accessVersion == ACCESS_VERSION) {
+                response.getJSONObject("offlineLease").also {
+                    val claims = LauncherOfflineLeaseVerifier.verify(
+                        envelope = it,
+                        digitalKey = digitalKey,
+                        expectedDeviceId = deviceId,
+                        expectedFlavor = BuildConfig.FLAVOR,
+                        expectedProofKeyId = proofIdentity.keyId
+                    )
+                    require(claims.issuedAt == issuedAt && claims.expiresAt == rawExpiresAt)
+                }.toString()
+            } else null
+            if (accessVersion == ACCESS_VERSION) {
+                require(response.optBoolean("recoveryBound")) {
+                    "The recovered lease is not bound to this device recovery identity"
+                }
+                preferences.edit().putString(RECOVERY_BOUND_KEY, proofIdentity.keyId).apply()
+            }
+            saveLease(digitalKey, issuedAt, effectiveExpiresAt, accessVersion, offlineLease)
+            LauncherLease(issuedAt, effectiveExpiresAt)
+        } catch (error: Exception) {
+            android.util.Log.w("JesterMoodsAccess", "Recovered lease validation failed; locking launcher", error)
+            null
         }
-        saveLease(digitalKey, issuedAt, expiresAt, accessVersion, offlineLease)
-        return LauncherLease(issuedAt, expiresAt)
     }
 
     private fun acceptProtocol4Lease(
@@ -392,10 +397,11 @@ class LauncherAccessManager(context: Context) {
         }
         val digitalKey = response.getString("digitalKey")
         val issuedAt = response.getLong("issuedAt")
-        val expiresAt = response.getLong("expiresAt")
-        require(digitalKey.length in 80..4096 && validManagedAccessWindow(issuedAt, expiresAt)) {
+        val rawExpiresAt = response.getLong("expiresAt")
+        require(digitalKey.length in 80..4096 && validManagedAccessWindow(issuedAt, rawExpiresAt)) {
             "The refreshed digital key is invalid"
         }
+        val effectiveExpiresAt = minOf(rawExpiresAt, issuedAt + LINKVERTISE_UNLOCK_TTL_SECONDS)
         val offlineLease = response.getJSONObject("offlineLease").also {
             val claims = LauncherOfflineLeaseVerifier.verify(
                 envelope = it,
@@ -404,11 +410,11 @@ class LauncherAccessManager(context: Context) {
                 expectedFlavor = BuildConfig.FLAVOR,
                 expectedProofKeyId = proofIdentity.keyId
             )
-            require(claims.issuedAt == issuedAt && claims.expiresAt == expiresAt)
+            require(claims.issuedAt == issuedAt && claims.expiresAt == rawExpiresAt)
         }.toString()
-        saveLease(digitalKey, issuedAt, expiresAt, ACCESS_VERSION, offlineLease)
+        saveLease(digitalKey, issuedAt, effectiveExpiresAt, ACCESS_VERSION, offlineLease)
         preferences.edit().putString(RECOVERY_BOUND_KEY, proofIdentity.keyId).apply()
-        return LauncherLease(issuedAt, expiresAt)
+        return LauncherLease(issuedAt, effectiveExpiresAt)
     }
 
     private fun validManagedAccessWindow(issuedAt: Long, expiresAt: Long): Boolean =
@@ -839,8 +845,9 @@ class LauncherAccessManager(context: Context) {
         }
         val digitalKey = response.getString("digitalKey")
         val issuedAt = response.getLong("issuedAt")
-        val expiresAt = response.getLong("expiresAt")
-        require(digitalKey.length in 80..4096 && validManagedAccessWindow(issuedAt, expiresAt))
+        val rawExpiresAt = response.getLong("expiresAt")
+        require(digitalKey.length in 80..4096 && validManagedAccessWindow(issuedAt, rawExpiresAt))
+        val effectiveExpiresAt = minOf(rawExpiresAt, issuedAt + LINKVERTISE_UNLOCK_TTL_SECONDS)
         val offlineLease = response.getJSONObject("offlineLease").also {
             val claims = LauncherOfflineLeaseVerifier.verify(
                 envelope = it,
@@ -849,15 +856,15 @@ class LauncherAccessManager(context: Context) {
                 expectedFlavor = BuildConfig.FLAVOR,
                 expectedProofKeyId = proofIdentity.keyId
             )
-            require(claims.issuedAt == issuedAt && claims.expiresAt == expiresAt)
+            require(claims.issuedAt == issuedAt && claims.expiresAt == rawExpiresAt)
         }.toString()
-        saveLease(digitalKey, issuedAt, expiresAt, ACCESS_VERSION, offlineLease)
+        saveLease(digitalKey, issuedAt, effectiveExpiresAt, ACCESS_VERSION, offlineLease)
         check(preferences.edit()
             .putString(RECOVERY_BOUND_KEY, proofIdentity.keyId)
             .remove(PENDING_CHALLENGE)
             .remove(PENDING_EXPIRES)
             .commit()) { "The launcher access state could not be saved" }
-        return LauncherLease(issuedAt, expiresAt)
+        return LauncherLease(issuedAt, effectiveExpiresAt)
     }
 
     private fun saveLease(
@@ -963,7 +970,8 @@ class LauncherAccessManager(context: Context) {
         private const val FLOW_TTL_MS = 20L * 60L * 1000L
         private const val ACCESS_VERSION = 4
         private const val DEVICE_LOCK_ACCESS_VERSION = 3
-        private const val MAX_MANAGED_ACCESS_TTL_SECONDS = 10L * 365L * 24L * 60L * 60L
+        private const val MAX_MANAGED_ACCESS_TTL_SECONDS = 15L * 365L * 24L * 60L * 60L
+        private const val LINKVERTISE_UNLOCK_TTL_SECONDS = 24L * 60L * 60L
         private const val CLOCK_SKEW_SECONDS = 5L * 60L
         private const val MODULE_CAPABILITY_TTL_SECONDS = 10L * 60L
         private const val PROOF_NONCE_TTL_SECONDS = 2L * 60L
