@@ -4708,6 +4708,36 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                 android.util.Log.e("JesterMoodsCatalog", "Catalog refresh failed", it)
                 null
             }
+            if (refreshedCatalog != null) {
+                val remoteSlugs = refreshedCatalog.mapTo(hashSetOf()) { it.slug }
+                val localStaleConfigs = repository.loadModules()
+                    .filter { config ->
+                        val slug = config.catalogSlug
+                        slug != null && slug !in remoteSlugs
+                    }
+                if (localStaleConfigs.isNotEmpty()) {
+                    android.util.Log.i("JesterMoodsCatalog", "Auto-cleaning up ${localStaleConfigs.size} deleted catalog modules")
+                    viewModelScope.launch(Dispatchers.IO) {
+                        localStaleConfigs.forEach { config ->
+                            runCatching {
+                                val entry = LibraryGame(
+                                    module = config,
+                                    game = null,
+                                    listing = null,
+                                    installedBuild = repository.installedBuild(config.packageName),
+                                    installedComplete = repository.isInstalled(config.packageName),
+                                    localTest = repository.isLocalTest(config.packageName)
+                                )
+                                ExecutionModeLaunchBridge.removeLibraryGameData(getApplication(), entry)
+                                repository.removeFromLibrary(config.packageName)
+                                storageManager.onAddOnRemoved(config.packageName)
+                            }.onFailure {
+                                android.util.Log.e("JesterMoodsCatalog", "Failed to auto-clean stale config: ${config.packageName}", it)
+                            }
+                        }
+                    }
+                }
+            }
             if (refreshedCatalog != null && refreshedCatalog != cachedCatalog) {
                 publishGames(refreshedCatalog, forceGameScan && cachedCatalog == null)
             } else if (refreshedCatalog != null && cachedCatalog == null) {
