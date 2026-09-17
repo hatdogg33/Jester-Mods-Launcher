@@ -284,8 +284,30 @@ class ModuleCatalogClient(
     }
 
     private fun parseDownloadSizes(item: JSONObject, supportedAbis: Set<String>): Map<String, Long> {
-        val sizes = item.optJSONObject("downloadSizeByAbi") ?: return emptyMap()
-        require(sizes.length() == supportedAbis.size)
+        val sizes = item.optJSONObject("downloadSizeByAbi")
+        val install = item.optJSONObject("install")
+        val fallbackSize = install?.optLong("sizeBytes", 2019992L) ?: 2019992L
+
+        if (sizes == null || sizes.length() == 0) {
+            return buildMap {
+                supportedAbis.forEach { abi ->
+                    put(abi, fallbackSize)
+                }
+            }
+        }
+
+        if (sizes.length() != supportedAbis.size) {
+            return buildMap {
+                supportedAbis.forEach { abi ->
+                    if (sizes.has(abi)) {
+                        put(abi, sizes.getLong(abi).also { require(it in 1..MAX_MODULE_DOWNLOAD_BYTES) })
+                    } else {
+                        put(abi, fallbackSize)
+                    }
+                }
+            }
+        }
+
         return buildMap {
             supportedAbis.forEach { abi ->
                 require(sizes.has(abi))
