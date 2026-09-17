@@ -10,11 +10,11 @@ android {
 
     defaultConfig {
         applicationId 'com.moodtools.hub.nonroot'
-        manifestPlaceholders = [launcherLabel: 'Jester Mods']
+        manifestPlaceholders = [launcherLabel: 'VOIDMOD1']
         minSdk 26
         targetSdk 35
-        versionCode project.hasProperty('launcherVersionCode') ? project.property('launcherVersionCode').toInteger() : 413
-        versionName project.hasProperty('launcherVersionName') ? project.property('launcherVersionName') : '4.1.3'
+        versionCode project.hasProperty('launcherVersionCode') ? project.property('launcherVersionCode').toInteger() : 418
+        versionName project.hasProperty('launcherVersionName') ? project.property('launcherVersionName') : '4.1.8'
         buildConfigField 'String', 'UPDATE_PUBLIC_KEY_DER_BASE64', '"MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAmOi94zh3CYW3ckziou3OZ55Ve383qQdyeOVzwgVdFNA9z8wFWhkx8jj8DM1DF2hOmGGJjVKqVJAGb8BfzGUeUws24xAaOkoBUYbGS3x+UgN1PxAIJcCIxrE3M/ZiCKTgGLRYueBVBIxsosr4O1NhZW1TiFw5Az4hAvYZSchsH2bsMM3WZ7a6trL/5A9yoEiAR/rvRwbRuN34/YxpzwK7o31kkV0aH/ulCS+fjl93FrRvjMcKiZAjEJ/ONIJATKianUERQHxmeJ21BzTwI7yKkDUoFGume158K7gQ2RN8VYdskTKwzEurg2KSmct1aVX6VsTQkdhe2/yq5jcf8AH9kOdfvQl+lXaG/xxzPjtvEUdtUlj3ue1Gs26DWNxsgH6pbsE2b6Js1gYBc0qQZfxYwshvuUadHm9NDPwqwyMNCaAU2R12Ezf/8GuogIWwNx2nNCEekxIEnLLHVi/rEFtgY8SY1skhqjma9Wbg6j+zwTkJdeSd24OK03B2W+9hEMQ1AgMBAAE="'
         buildConfigField 'String', 'ACCESS_LEASE_PUBLIC_KEY_DER_BASE64', '"MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAsxlNkIQ/9cHCQKHvDN2sgMvFxqqYTnv3LXLGXev6X/WLjH51LFEzHAj7KLsm9cW/+AopxFrksfiSuVZBZXdENI0ZTr82zcR4rxFJnbO9w7VMvSnBziXNmFe43/tVNW5n7HJ9H+R+7/XFS0npq1tixa2Jdono1NhuGYczuAJDtFXdbwE3liJnpZSHgcT5irzOPQ/HKInB/JnNslyA9gFqoGcSutArpi3bW81Q/GLShOkUmQxLK8oqzVGmd7FcTJVfVWgsNDOQrqrZ0mqDmy4Zpt7S8ZD+7K7k92a4oBpzBFlALL5O33r777rAb6bymNbjNImVXKl0AGl465dbj5lIhAnKV/buUXcI+8Fx4StF5xXUVL7bC3KV/qNAXTIIHx0CcLhmMgtAgtBmRLZzIgS2EKeMuoEEglefwp0XJIGE2YkrmgjeF7/4qp0Xq/xN2mfNhwR8i8I49nJXfp8M9Dv7zLZe23WO2ATSaCbGqkhjI7UbnO5Dcyhnu/zq+pX1AypfAgMBAAE="'
         buildConfigField 'boolean', 'PRIVATE_MODULE_ENABLED', 'false'

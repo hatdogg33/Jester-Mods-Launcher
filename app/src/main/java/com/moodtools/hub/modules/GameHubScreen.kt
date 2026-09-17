@@ -1164,7 +1164,7 @@ private fun DirectPatchInstallDialog(
                         detail = if (identityShell) {
                             "The home-screen name and icon come from the original game. Opening it starts the preserved game payload directly."
                         } else {
-                            "Jester Mods will open Android's installer automatically after the uninstall finishes."
+                            "VOIDMOD1 will open Android's installer automatically after the uninstall finishes."
                         }
                     )
                 } else {
