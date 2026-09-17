@@ -721,7 +721,7 @@ private fun GateBrandHeader() {
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(R.drawable.jester_moods_icon),
+                painter = painterResource(R.drawable.voidmod1_icon),
                 contentDescription = "VOIDMOD1",
                 modifier = Modifier.size(36.dp)
             )

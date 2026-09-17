@@ -281,9 +281,9 @@ public final class OfflineTranslator {
         addComplete("Max Level All Bodyguards",
                 "Max Antas ng Lahat ng Bodyguard", "모든 경호원 최대 레벨", "すべてのボディーガードのレベルを最大化", "所有保镖的等级已最大化",
                 "Maximizar nivel de todos los guardaespaldas", "Tối đa cấp độ tất cả vệ sĩ", "Maks Level Semua Pengawal", "Maximizar Todos os Guarda-costas");
-        addComplete("Menu by Jester",
-                "Menu ni Jester", "조커의 메뉴", "ジェスターによるメニュー", "小丑的菜单",
-                "Menú por Jester", "Menu bởi Jester", "Menu oleh Jester", "Menu por Jester");
+        addComplete("Menu by VOIDMOD1",
+                "Menu ni VOIDMOD1", "VOIDMOD1의 메뉴", "VOIDMOD1によるメニュー", "VOIDMOD1的菜单",
+                "Menú por VOIDMOD1", "Menu bởi VOIDMOD1", "Menu oleh VOIDMOD1", "Menu por VOIDMOD1");
         addComplete("Native Implementation Examples",
                 "Mga Halimbawa ng Nakaprogmang Katutubong Implementasyon", "네이티브 구현 예제", "ネイティブ実装例", "本地实现示例",
                 "Ejemplos de Implementación Nativa", "Ví dụ về Triển khai Gốc", "Contoh Implementasi Bawaan", "Exemplos de Implementação Nativa");
@@ -503,7 +503,7 @@ public final class OfflineTranslator {
         addArabic("Long Input Without Maximum", "إدخال طويل بدون الحد الأقصى");
         addArabic("Materials & Event Items Multiplier (0-1 = normal)", "مضاعف المواد وعناصر الحدث (0-1 = عادي)");
         addArabic("Max Level All Bodyguards", "الحد الأقصى لجميع الحراس الشخصيين");
-        addArabic("Menu by Jester", "القائمة من قبل المهرج");
+        addArabic("Menu by VOIDMOD1", "القائمة من قبل VOIDMOD1");
         addArabic("Native Implementation Examples", "أمثلة التنفيذ الأصلي");
         addArabic("Nested Child Button", "زر الطفل المتداخل");
         addArabic("Nested child button pressed.", "تم الضغط على زر الطفل المتداخل.");
