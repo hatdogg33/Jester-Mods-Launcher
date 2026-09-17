@@ -19,7 +19,7 @@
 
 ## Overview
 
-Jester Mods Launcher provides a single library for discovering supported games, installing verified modules, applying the appropriate Root or Non-root execution path, launching configured games, and managing updates.
+VOIDMOD1 Launcher provides a single library for discovering supported games, installing verified modules, applying the appropriate Root or Non-root execution path, launching configured games, and managing updates.
 
 This repository exists so users and security researchers can inspect the Android client's trust boundaries: network access, signed metadata, module integrity, launcher updates, device-bound access, and guarded launch authorization.
 

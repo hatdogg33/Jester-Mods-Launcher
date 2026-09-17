@@ -385,7 +385,7 @@ class LauncherActivity : ComponentActivity() {
     private fun copySupportCode() {
         runCatching {
             val code = viewModel.supportCode()
-            val clip = ClipData.newPlainText("Jester Mods support code", code)
+            val clip = ClipData.newPlainText("VOIDMOD1 support code", code)
             clip.description.extras = PersistableBundle().apply {
                 putBoolean("android.content.extra.IS_SENSITIVE", true)
             }
@@ -796,7 +796,7 @@ class LauncherActivity : ComponentActivity() {
             !packageManager.canRequestPackageInstalls()) {
             viewModel.onPackageReplacementProgress(
                 "Waiting for Android",
-                "Allow Jester Mods to install unknown apps, then return to review the ${request.title} setup."
+                "Allow VOIDMOD1 to install unknown apps, then return to review the ${request.title} setup."
             )
             openInstallerPermissionSettings(InstallerPermissionTarget.PACKAGE_REPLACEMENT) {
                 finishPackageReplacementWithFailure(
@@ -1133,7 +1133,7 @@ class LauncherActivity : ComponentActivity() {
                     showPackageReplacementWarning(request)
                 } else if (request != null) {
                     finishPackageReplacementWithFailure(
-                        "Allow Jester Mods to install unknown apps before patching ${request.title}."
+                        "Allow VOIDMOD1 to install unknown apps before patching ${request.title}."
                     )
                 }
             }
@@ -1165,7 +1165,7 @@ class LauncherActivity : ComponentActivity() {
 
         // The launcher also owns the release callback deep link. Prefer the user's
         // normal web browser for the verification page so the HTTPS route cannot
-        // accidentally loop straight back into Jester Mods. Some Android builds return
+        // accidentally loop straight back into VOIDMOD1. Some Android builds return
         // the system resolver (package "android") from resolveActivity; only pin the
         // request when that package is also a genuine generic HTTPS handler.
         val genericWeb = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
@@ -1464,7 +1464,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             .onFailure { error ->
                 android.util.Log.e("JesterMoodsAccess", "Digital key recovery check failed", error)
                 _startupState.value = LauncherStartupState.ConnectionRequired(
-                    "Jester Mods needs internet once after its app data is cleared or it is reinstalled. " +
+                    "VOIDMOD1 needs internet once after its app data is cleared or it is reinstalled. " +
                         "Connect, then tap Try again. Active access on this device will be restored automatically."
                 )
             }
@@ -2316,7 +2316,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             failed = true,
             stage = SecureTransferStage.FAILED,
             headline = "Installation permission is needed",
-            detail = "Allow Jester Mods to install app updates, then tap Install update again."
+            detail = "Allow VOIDMOD1 to install app updates, then tap Install update again."
         )
     }
 
@@ -2475,7 +2475,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
         val readyDetail = if (downloaded) {
             "The verified download is saved on this device."
         } else {
-            "Download it here without leaving Jester Mods."
+            "Download it here without leaving VOIDMOD1."
         }
         _launcherUpdateState.update { current ->
             val sameRelease = current.available && current.build == release.build
@@ -2578,7 +2578,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
     fun onGameStoreOpened() {
         _gameInstallState.value = GameInstallUiState(
             headline = "Continue in Google Play",
-            detail = "Install or update the original game there, then return to Jester Mods."
+            detail = "Install or update the original game there, then return to VOIDMOD1."
         )
     }
 
@@ -2601,7 +2601,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             targetVersion = source?.version.orEmpty(),
             packageFormat = source?.format?.name.orEmpty(),
             headline = "Installation permission is needed",
-            detail = "Allow Jester Mods to install apps, then tap Download game again.",
+            detail = "Allow VOIDMOD1 to install apps, then tap Download game again.",
             failed = true,
             diagnostics = listOf("Android denied the unknown-app installation permission")
         )
@@ -2682,7 +2682,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                         stage = GameInstallStage.DOWNLOADING,
                         stageProgress = null,
                         headline = "Downloading original game",
-                        detail = "Keep Jester Mods open while the verified game downloads.",
+                        detail = "Keep VOIDMOD1 open while the verified game downloads.",
                         diagnostics = appendDiagnostic(
                             _gameInstallState.value.diagnostics,
                             "Secure download started"
@@ -3034,7 +3034,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             stage = GameInstallStage.COMPLETED,
             stageProgress = 1f,
             headline = "Original game installed",
-            detail = "You can now add it to your Jester Mods library.",
+            detail = "You can now add it to your VOIDMOD1 library.",
             diagnostics = appendDiagnostic(current.diagnostics, "Installed build verified on this device")
         )
     }
@@ -3551,7 +3551,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                 _gameDataResetState.value = GameDataResetUiState(
                     failed = true,
                     headline = "Couldn't clear game data",
-                    detail = "Restart Jester Mods and try again."
+                    detail = "Restart VOIDMOD1 and try again."
                 )
             }
         }
@@ -3604,9 +3604,9 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                 _updateState.value = ModuleUpdateUiState(
                     headline = if (failures == 1) "Couldn't remove one add-on" else "Couldn't remove $failures add-ons",
                     detail = if (removedPackages.isEmpty()) {
-                        "Restart Jester Mods and try the selection again."
+                        "Restart VOIDMOD1 and try the selection again."
                     } else {
-                        "The other selected add-ons were removed. Restart Jester Mods and try the remaining selection again."
+                        "The other selected add-ons were removed. Restart VOIDMOD1 and try the remaining selection again."
                     },
                     failed = true
                 )
@@ -3660,7 +3660,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             } else if (!_launchState.value.failed) {
                 _launchState.value = LaunchUiState(
                     headline = "Couldn't open the game",
-                    detail = "Try again. If it keeps happening, restart Jester Mods.",
+                    detail = "Try again. If it keeps happening, restart VOIDMOD1.",
                     failed = true
                 )
             }
@@ -3967,7 +3967,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                     },
                     detail = buildString {
                         append("${game.module.title} is ready in your library")
-                        result.version?.let { append(" with Jester Mods $it") }
+                        result.version?.let { append(" with VOIDMOD1 $it") }
                         append(".")
                     },
                     completed = true,
@@ -4404,7 +4404,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                     },
                     stageProgress = if (downloaded >= total && total > 0L) 0f else null,
                     headline = progressHeadline,
-                    detail = progressDetail ?: "Getting ${game.module.title} ready for Jester Mods.",
+                    detail = progressDetail ?: "Getting ${game.module.title} ready for VOIDMOD1.",
                     downloadedBytes = downloaded,
                     totalBytes = total
                 )
@@ -4564,7 +4564,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
         val detail = if (denied) {
             "This device is not approved for this private add-on. Send the support code to the owner."
         } else {
-            "Jester Mods could not verify this private add-on approval. Connect and try again."
+            "VOIDMOD1 could not verify this private add-on approval. Connect and try again."
         }
         when (action) {
             ProtectedActionBoundary.GAME_LAUNCH -> _launchState.value = LaunchUiState(
@@ -4607,7 +4607,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             URLEncoder.encode(nonce, Charsets.UTF_8.name())
         _updateState.value = ModuleUpdateUiState(
             headline = "One more step",
-            detail = "Complete the quick verification, then Jester Mods will finish the update.",
+            detail = "Complete the quick verification, then VOIDMOD1 will finish the update.",
             verificationUrl = verificationUrl,
             totalBytes = moduleDownloadSize(packageName, null)
         )

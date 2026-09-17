@@ -175,7 +175,7 @@ internal class IdentityShellManager(
 
         onProgress?.invoke(
             "Repairing $label shell",
-            "Binding the shell to this Jester Mods installation without removing the game."
+            "Binding the shell to this VOIDMOD1 installation without removing the game."
         )
         val unsigned = File(root, "shell-repair-unsigned.apk")
         val signed = File(root, "shell.apk")
@@ -211,7 +211,7 @@ internal class IdentityShellManager(
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             require(packageManager.canRequestPackageInstalls()) {
-                "Allow Jester Mods to install unknown apps first"
+                "Allow VOIDMOD1 to install unknown apps first"
             }
         }
         validateShell(
@@ -253,7 +253,7 @@ internal class IdentityShellManager(
         }
     }
 
-    /** Issues a short-lived proof that this shell launch originated in Jester Mods. */
+    /** Issues a short-lived proof that this shell launch originated in VOIDMOD1. */
     fun authorizeLaunch(intent: Intent): Intent {
         val issuedAt = System.currentTimeMillis()
         val nonceBytes = ByteArray(LAUNCH_NONCE_BYTES).also(SecureRandom()::nextBytes)
@@ -505,7 +505,7 @@ internal class IdentityShellManager(
                     .setKeySize(2048)
                     .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
                     .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                    .setCertificateSubject(X500Principal("CN=Jester Mods Identity Shell"))
+                    .setCertificateSubject(X500Principal("CN=VOIDMOD1 Identity Shell"))
                     .setCertificateSerialNumber(BigInteger.ONE)
                     .setCertificateNotBefore(Date(now - 86_400_000L))
                     .setCertificateNotAfter(Date(now + KEY_VALIDITY_MILLIS))
@@ -525,7 +525,7 @@ internal class IdentityShellManager(
         val temporary = File(root, "${output.name}.part")
         temporary.delete()
         val signer = ApkSigner.SignerConfig.Builder(
-            "Jester Mods identity shell",
+            "VOIDMOD1 identity shell",
             material.privateKey,
             listOf(material.certificate)
         ).build()

@@ -122,7 +122,7 @@ class GameInstallClient(private val context: Context) {
         onPreparationProgress(0.68f)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             require(context.packageManager.canRequestPackageInstalls()) {
-                "Allow Jester Mods to install games in Android settings"
+                "Allow VOIDMOD1 to install games in Android settings"
             }
         }
         onPreparationProgress(0.74f)

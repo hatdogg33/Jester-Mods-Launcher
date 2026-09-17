@@ -180,7 +180,7 @@ public final class FakeBillingCompat {
                         : FakeBillingCatalog.legacyProductJson(packageName, id, productType));
             }
             Bundle result = response(RESPONSE_OK,
-                    "Testing placeholders supplied by Jester Mods; purchases are disabled.");
+                    "Testing placeholders supplied by VOIDMOD1; purchases are disabled.");
             result.putStringArrayList("DETAILS_LIST", details);
             return result;
         }

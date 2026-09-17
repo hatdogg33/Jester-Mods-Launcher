@@ -43,7 +43,7 @@ internal object TransferFailurePolicy {
                 )) {
             return TransferFailurePresentation(
                 headline = "This launcher can't update in place",
-                detail = "This copy uses a different app identity or signing certificate. It may be a debug, locally signed, or repackaged build. Install the official Jester Mods release manually; Android may require this copy to be uninstalled first."
+                detail = "This copy uses a different app identity or signing certificate. It may be a debug, locally signed, or repackaged build. Install the official VOIDMOD1 release manually; Android may require this copy to be uninstalled first."
             )
         }
 
@@ -61,7 +61,7 @@ internal object TransferFailurePolicy {
                     evidence.contains("request package installs") ||
                     evidence.contains("unknown app")
                 ) {
-                    "Allow Jester Mods to install apps in Android settings, then try again."
+                    "Allow VOIDMOD1 to install apps in Android settings, then try again."
                 } else {
                     "The verified package is still saved. Restart the device and try opening Android's installer again."
                 }
@@ -71,7 +71,7 @@ internal object TransferFailurePolicy {
         if (Regex("http(?: response)? (?:401|403)").containsMatchIn(evidence)) {
             return TransferFailurePresentation(
                 headline = "Download authorization expired",
-                detail = "Jester Mods could not authorize this download. Refresh the add-on or update details, then try again."
+                detail = "VOIDMOD1 could not authorize this download. Refresh the add-on or update details, then try again."
             )
         }
 
@@ -85,7 +85,7 @@ internal object TransferFailurePolicy {
         if (hasBusyServiceEvidence(evidence)) {
             return TransferFailurePresentation(
                 headline = "Download service is busy",
-                detail = "The service asked Jester Mods to slow down. Your saved progress is safe; wait a moment, then retry."
+                detail = "The service asked VOIDMOD1 to slow down. Your saved progress is safe; wait a moment, then retry."
             )
         }
 
@@ -103,7 +103,7 @@ internal object TransferFailurePolicy {
         if (hasSecureConnectionEvidence(evidence)) {
             return TransferFailurePresentation(
                 headline = "Secure connection failed",
-                detail = "Jester Mods could not establish a trusted connection, so nothing was accepted. Check the device date and network, then retry."
+                detail = "VOIDMOD1 could not establish a trusted connection, so nothing was accepted. Check the device date and network, then retry."
             )
         }
 
@@ -125,7 +125,7 @@ internal object TransferFailurePolicy {
                 } else {
                     "Couldn't save the download"
                 },
-                detail = "Jester Mods could not write the file inside its app storage. Restart the device and check that Android storage is available, then try again."
+                detail = "VOIDMOD1 could not write the file inside its app storage. Restart the device and check that Android storage is available, then try again."
             )
         }
 
@@ -147,11 +147,11 @@ internal object TransferFailurePolicy {
         )
         "LAUNCHER_UPDATE_REQUIRED" -> TransferFailurePresentation(
             headline = "Launcher update required",
-            detail = "Install the latest Jester Mods Launcher update, then retry."
+            detail = "Install the latest VOIDMOD1 Launcher update, then retry."
         )
         "PROOF_KEY_REQUIRED", "PROOF_REJECTED" -> TransferFailurePresentation(
             headline = "Launcher session couldn't be verified",
-            detail = "Restart Jester Mods or unlock it again, then retry."
+            detail = "Restart VOIDMOD1 or unlock it again, then retry."
         )
         "ATTESTATION_REQUIRED" -> TransferFailurePresentation(
             headline = "Device security check failed",

@@ -83,7 +83,7 @@ if (($launcher -join '') -notmatch 'package:') {
 
 Write-Host ''
 Write-Host "Verifying $StateId" -ForegroundColor Cyan
-Write-Host 'Open Zombie Tsunami from Jester Mods now.' -ForegroundColor Yellow
+Write-Host 'Open Zombie Tsunami from VOIDMOD1 now.' -ForegroundColor Yellow
 Write-Host "Waiting up to $TimeoutSeconds seconds for the exact Play Store crash and stable retry state..."
 
 $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -95,7 +95,7 @@ do {
 } while ([DateTime]::UtcNow -lt $deadline)
 
 if (-not (Test-ReferenceState $captured)) {
-    throw "Did not observe the complete $StateId signature. Confirm Zombie Tsunami was launched through Jester Mods."
+    throw "Did not observe the complete $StateId signature. Confirm Zombie Tsunami was launched through VOIDMOD1."
 }
 
 $initialFatalCount = Get-VendingFatalCount $captured

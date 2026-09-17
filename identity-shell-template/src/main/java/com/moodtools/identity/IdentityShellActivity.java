@@ -257,14 +257,14 @@ public final class IdentityShellActivity extends Activity {
                 copyAtomically(input, new File(directory, name), "classes.dex".equals(name));
                 copiedAny = true;
             } catch (java.io.FileNotFoundException unavailable) {
-                // Jester Mods can be absent after first setup; keep the last verified payload.
+                // VOIDMOD1 can be absent after first setup; keep the last verified payload.
             }
         }
         if (!copiedAny) {
             for (String name : files) {
                 if (!new File(directory, name).isFile()) {
                     throw new IllegalStateException(
-                            "The add-on payload is incomplete. Open Jester Mods and update or reinstall this add-on");
+                            "The add-on payload is incomplete. Open VOIDMOD1 and update or reinstall this add-on");
                 }
             }
         }
@@ -272,7 +272,7 @@ public final class IdentityShellActivity extends Activity {
             File payload = new File(directory, name);
             if (!payload.isFile() || payload.length() <= 0L) {
                 throw new IllegalStateException(
-                        "The add-on payload is incomplete. Open Jester Mods and update or reinstall this add-on");
+                        "The add-on payload is incomplete. Open VOIDMOD1 and update or reinstall this add-on");
             }
         }
     }
@@ -329,9 +329,9 @@ public final class IdentityShellActivity extends Activity {
 
     private void showFailure(String detail) {
         String message = detail == null || detail.trim().isEmpty()
-                ? "Open Jester Mods and prepare this game again."
+                ? "Open VOIDMOD1 and prepare this game again."
                 : detail.trim();
         runOnUiThread(() -> status.setText(
-                "Setup required\n\n" + message + "\n\nOpen Jester Mods to repair this game."));
+                "Setup required\n\n" + message + "\n\nOpen VOIDMOD1 to repair this game."));
     }
 }

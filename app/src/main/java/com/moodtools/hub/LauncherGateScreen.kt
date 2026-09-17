@@ -201,7 +201,7 @@ internal fun FirstRunLanguageScreen(
                             )
                             Spacer(Modifier.height(9.dp))
                             RawText(
-                                translated("Choose your preferred language for Jester Mods."),
+                                translated("Choose your preferred language for VOIDMOD1."),
                                 color = GateMuted,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -638,7 +638,7 @@ private fun DefaultGateContent(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        "1. Continue to the Jester Mods website\n2. Complete Linkvertise and the browser check\n3. Tap Open launcher on the website",
+                        "1. Continue to the VOIDMOD1 website\n2. Complete Linkvertise and the browser check\n3. Tap Open launcher on the website",
                         color = GateMuted,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -722,13 +722,13 @@ private fun GateBrandHeader() {
         ) {
             Image(
                 painter = painterResource(R.drawable.jester_moods_icon),
-                contentDescription = "Jester Mods",
+                contentDescription = "VOIDMOD1",
                 modifier = Modifier.size(36.dp)
             )
         }
         Column(modifier = Modifier.padding(start = 11.dp)) {
             Text(
-                "JESTER MODS",
+                "VOIDMOD1",
                 color = Color.White,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,

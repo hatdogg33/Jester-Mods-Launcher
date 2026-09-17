@@ -61,8 +61,8 @@ class LauncherLanguageTest {
                 assertTrue(LauncherLocalization.translate(text, language).isNotBlank())
             }
             assertNotEquals(
-                "Choose your preferred language for Jester Mods.",
-                LauncherLocalization.translate("Choose your preferred language for Jester Mods.", language)
+                "Choose your preferred language for VOIDMOD1.",
+                LauncherLocalization.translate("Choose your preferred language for VOIDMOD1.", language)
             )
             assertNotEquals(
                 "Your choice is saved offline on this device.",
@@ -87,7 +87,7 @@ class LauncherLanguageTest {
             "ADD-ON RELEASE",
             "GAME RELEASE",
             "Requirements are satisfied. The in-game menu will show a compact runtime status only.",
-            "Jester Mods starts the installed game and injects the verified add-on through the root runtime. The original game package and signing certificate stay unchanged.",
+            "VOIDMOD1 starts the installed game and injects the verified add-on through the root runtime. The original game package and signing certificate stay unchanged.",
             "Show",
             "Hide"
         )
@@ -161,11 +161,11 @@ class LauncherLanguageTest {
             "Open Google Play instead",
             "This device isn't supported",
             "This device version isn't supported",
-            "The installed game architecture does not match the available Jester Mods add-on.",
+            "The installed game architecture does not match the available VOIDMOD1 add-on.",
             "Downloading add-on",
             "Download complete",
             "Couldn't download add-on",
-            "Jester Mods will download the add-on for this installed game.",
+            "VOIDMOD1 will download the add-on for this installed game.",
             "Back to library",
             "Update add-on",
             "Add add-on",
@@ -192,7 +192,7 @@ class LauncherLanguageTest {
             "The embedded add-on changed. Update the patched game in place before playing.",
             "A previous patched installation was detected. Restore the official game before creating its exact-package shell.",
             "Preserve the untouched game and install its game-branded exact-package shell.",
-            "Jester Mods will open the game with your features ready.",
+            "VOIDMOD1 will open the game with your features ready.",
             "Ready to play",
             "Running and ready",
             "Install the original game first. The launcher will re-check compatibility automatically.",
@@ -201,8 +201,8 @@ class LauncherLanguageTest {
             "Repair the add-on package so the runtime menu can load cleanly.",
             "The add-on is downloaded. Build and install the patched game before the Play button becomes available.",
             "Install the refreshed patch in place so the game contains this add-on version.",
-            "Jester Mods detected its previous patch and will keep it out of the new shell. Restore the official Google Play game first.",
-            "Jester Mods will preserve the untouched game package and create a shell with its exact name and icon.",
+            "VOIDMOD1 detected its previous patch and will keep it out of the new shell. Restore the official Google Play game first.",
+            "VOIDMOD1 will preserve the untouched game package and create a shell with its exact name and icon.",
             "The maintainer is updating this add-on for the newer game release shown by Google Play.",
             "Not installed",
             "Supported versions",
@@ -282,8 +282,8 @@ class LauncherLanguageTest {
             "Checking access and signed release details",
             "Checking package hash, identity, and signature",
             "Validating the release identity, version, and changelog",
-            "Complete Android's secure prompt. Jester Mods will verify the result when you return.",
-            "The verified files are being activated atomically. Keep Jester Mods open.",
+            "Complete Android's secure prompt. VOIDMOD1 will verify the result when you return.",
+            "The verified files are being activated atomically. Keep VOIDMOD1 open.",
             "Android installation in progress", "Verified add-on activation in progress",
             "Loading verified release history…", "Loading feature details…",
             "Preparing the add-on catalog…", "Preparing install details…",
@@ -296,8 +296,8 @@ class LauncherLanguageTest {
             "EXACT-PACKAGE SHELL", "VERIFIED DIRECT PATCH",
             "Preserving the original game inside its branded shell",
             "Preparing a locally verified patched installation",
-            "Android owns the current confirmation. Jester Mods will verify the result when you return.",
-            "Jester Mods will verify the installed build when you return.",
+            "Android owns the current confirmation. VOIDMOD1 will verify the result when you return.",
+            "VOIDMOD1 will verify the installed build when you return.",
             "Reading and hashing package", "Proving integrity and identity",
             "Building Android's install request", "Writing secure install session",
             "Opening Android installer", "Installation complete", "Installation failed",
@@ -307,7 +307,7 @@ class LauncherLanguageTest {
             "Installing add-on update", "All updates installed", "Update needs attention",
             "Updates available", "Another update is in progress", "Queued", "Updating", "Retry",
             "Preparing download…", "Opening from Browse add-ons", "Opening from Library",
-            "Opening from Settings", "Jester Mods add-on transfer diagnostics",
+            "Opening from Settings", "VOIDMOD1 add-on transfer diagnostics",
             "Payload hashes and signed identity verified", "Activating the verified add-on atomically"
         )
         LauncherLanguage.entries.drop(1).forEach { language ->
@@ -326,7 +326,7 @@ class LauncherLanguageTest {
                 "Preparing Township download",
                 "Signed manifest accepted for build 107",
                 "Township is ready in your library",
-                "Township is ready in your library with Jester Mods 1.0.7"
+                "Township is ready in your library with VOIDMOD1 1.0.7"
             ).forEach { dynamic ->
                 val translated = LauncherLocalization.translate(dynamic, language)
                 assertNotEquals(dynamic, translated)

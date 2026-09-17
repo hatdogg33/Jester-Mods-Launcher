@@ -151,7 +151,7 @@ internal enum class LauncherTheme(
 ) {
     Midnight(
         "Midnight",
-        "Jester Mods signature teal in a deep, focused night.",
+        "VOIDMOD1 signature teal in a deep, focused night.",
         LauncherPalette(
             Color(0xFF090B10), Color(0xFF12161D), Color(0xFF191F28),
             Color(0xFF80E4C6), Color(0xFF8CB9FF), Color(0xFFAAB3BF),
@@ -1152,7 +1152,7 @@ private fun DirectPatchInstallDialog(
                         number = "1",
                         headline = "Remove the current installation",
                         detail = if (identityShell) {
-                            "Android will uninstall the Play-signed game after Jester Mods preserves its untouched APK set. Local game data is still erased, so back up anything you need."
+                            "Android will uninstall the Play-signed game after VOIDMOD1 preserves its untouched APK set. Local game data is still erased, so back up anything you need."
                         } else {
                             "Android will uninstall the Play-signed game. This permanently erases its local app data, so back up anything you need before continuing."
                         },
@@ -1172,7 +1172,7 @@ private fun DirectPatchInstallDialog(
                         number = "1",
                         headline = if (identityShell) "Repair shell in place" else "Install in place",
                         detail = if (identityShell) {
-                            "Android will update the existing shell without uninstalling it. The preserved original-game payload stays in Jester Mods."
+                            "Android will update the existing shell without uninstalling it. The preserved original-game payload stays in VOIDMOD1."
                         } else {
                             "Android will update the existing Jester-patched game while preserving its local app data."
                         }
@@ -1245,7 +1245,7 @@ private fun LegacyPatchMigrationDialog(
                 DirectPatchDialogStep(
                     number = "2",
                     headline = "Remove the legacy patch",
-                    detail = "Jester Mods will open Android's uninstall confirmation. The add-on stays safely in your Library."
+                    detail = "VOIDMOD1 will open Android's uninstall confirmation. The add-on stays safely in your Library."
                 )
                 DirectPatchDialogStep(
                     number = "3",
@@ -1740,9 +1740,9 @@ private fun SettingsScreen(
         item {
             SettingsPortalCard(
                 icon = SettingsPortalIcon.About,
-                eyebrow = "JESTER MODS",
+                eyebrow = "VOIDMOD1",
                 title = "About",
-                detail = "Meet the launcher, its design principles, and the creator behind Jester Mods.",
+                detail = "Meet the launcher, its design principles, and the creator behind VOIDMOD1.",
                 accent = PrivateViolet,
                 onClick = onOpenAbout
             )
@@ -1929,7 +1929,7 @@ private fun LanguageScreen(
                 Text("Language", color = Color.White, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(7.dp))
                 Text(
-                    "Choose your preferred language for Jester Mods.",
+                    "Choose your preferred language for VOIDMOD1.",
                     color = Muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -2055,13 +2055,13 @@ private fun AboutScreen(
                 ) {
                     Image(
                         painter = painterResource(R.drawable.jester_moods_icon),
-                        contentDescription = "Jester Mods",
+                        contentDescription = "VOIDMOD1",
                         modifier = Modifier.size(88.dp)
                     )
                 }
                 Spacer(Modifier.height(22.dp))
                 Text(
-                    "JESTER MODS",
+                    "VOIDMOD1",
                     color = Accent,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Black
@@ -2123,10 +2123,10 @@ private fun AboutScreen(
             ) {
                 Text("FOLLOW THE JOURNEY", color = Accent, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(6.dp))
-                Text("Stay connected to Jester Mods", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Stay connected to VOIDMOD1", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Explore the source and releases on GitHub, then follow Jester Mods on YouTube for videos and updates.",
+                    "Explore the source and releases on GitHub, then follow VOIDMOD1 on YouTube for videos and updates.",
                     color = Muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -2230,7 +2230,7 @@ private fun HelpScreen(
                     SettingsPortalGlyph(SettingsPortalIcon.Help, AccentBlue, Modifier.size(42.dp))
                 }
                 Spacer(Modifier.height(20.dp))
-                Text("JESTER MODS SUPPORT", color = AccentBlue, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Black)
+                Text("VOIDMOD1 SUPPORT", color = AccentBlue, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(5.dp))
                 Text("Help & Support", color = Color.White, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
@@ -2744,7 +2744,7 @@ private fun ChangelogScreen(
             }
         }
 
-        item { ChangelogSectionTitle("JESTER MODS", "The launcher, refined release by release.") }
+        item { ChangelogSectionTitle("VOIDMOD1", "The launcher, refined release by release.") }
         if (state.launcherEntries.isEmpty() && !state.loading) {
             item {
                 ChangelogMessageCard(state.error ?: "Launcher release history will appear after the next successful sync.")
@@ -2760,7 +2760,7 @@ private fun ChangelogScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 ChangelogEntryCard(
-                    title = "Jester Mods ${entry.version}",
+                    title = "VOIDMOD1 ${entry.version}",
                     meta = launcherChangelogMeta(entry, installedBuild),
                     notes = entry.notes.ifBlank { "Maintenance and reliability improvements." },
                     highlighted = true
@@ -2870,9 +2870,9 @@ private fun LauncherChangelogDetailScreen(
         item {
             ChangelogHistoryHero(
                 monogram = "JM",
-                eyebrow = "JESTER MODS ARCHIVE",
+                eyebrow = "VOIDMOD1 ARCHIVE",
                 title = "Launcher history",
-                detail = "Every verified Jester Mods release.",
+                detail = "Every verified VOIDMOD1 release.",
                 count = entries.size,
                 accent = Accent
             )
@@ -3243,7 +3243,7 @@ private fun LauncherChangelogCompactCard(entry: LauncherChangelogEntry, installe
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Jester Mods ${entry.version}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("VOIDMOD1 ${entry.version}", color = Color.White, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(3.dp))
                 Text(
                     launcherChangelogMeta(entry, installedBuild),
@@ -3393,7 +3393,7 @@ private fun LauncherUpdateScreen(
             )
             Spacer(Modifier.height(10.dp))
             Text("Launcher update", color = Color.White, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-            Text("Version ${update.version ?: "new"} is available for Jester Mods.", color = Muted)
+            Text("Version ${update.version ?: "new"} is available for VOIDMOD1.", color = Muted)
         }
         item {
             Column(
@@ -3594,7 +3594,7 @@ private fun LauncherUpdateDialog(
     var diagnosticsExpanded by rememberSaveable(update.build) { mutableStateOf(false) }
     val report = remember(update) {
         buildString {
-            appendLine("Jester Mods launcher update diagnostics")
+            appendLine("VOIDMOD1 launcher update diagnostics")
             appendLine("Stage: ${launcherUpdateStageLabel(update)}")
             appendLine("Target: ${update.version ?: "Unknown"} (${update.build})")
             appendLine("Downloaded: ${update.downloaded}")
@@ -3680,7 +3680,7 @@ private fun LauncherUpdateDialog(
                 }
                 item {
                     Text(
-                        "The next chapter of Jester Mods is ready. Update securely without leaving the launcher.",
+                        "The next chapter of VOIDMOD1 is ready. Update securely without leaving the launcher.",
                         color = Muted,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -3792,7 +3792,7 @@ private fun LauncherUpdateDialog(
                         onToggle = { diagnosticsExpanded = !diagnosticsExpanded },
                         summary = "Live launcher update report",
                         report = report,
-                        clipboardLabel = "Jester Mods launcher update diagnostics"
+                        clipboardLabel = "VOIDMOD1 launcher update diagnostics"
                     )
                 }
                 item {
@@ -3837,7 +3837,7 @@ private fun LauncherUpdateDialog(
                     }
                     Spacer(Modifier.height(9.dp))
                     Text(
-                        "Signed and verified by Jester Mods. Your library, add-ons, and access remain on this device.",
+                        "Signed and verified by VOIDMOD1. Your library, add-ons, and access remain on this device.",
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -3871,8 +3871,8 @@ private fun ModuleTransferDialog(
     val report = remember(state) {
         buildString {
             appendLine(
-                if (checkingForUpdate) "Jester Mods add-on update check diagnostics"
-                else "Jester Mods add-on transfer diagnostics"
+                if (checkingForUpdate) "VOIDMOD1 add-on update check diagnostics"
+                else "VOIDMOD1 add-on transfer diagnostics"
             )
             appendLine("Stage: ${secureTransferStageLabel(state.stage)}")
             if (state.title.isNotBlank()) appendLine("Add-on: ${state.title}")
@@ -3933,7 +3933,7 @@ private fun ModuleTransferDialog(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            state.title.ifBlank { "Jester Mods add-on" },
+                            state.title.ifBlank { "VOIDMOD1 add-on" },
                             color = Color.White,
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
@@ -4039,9 +4039,9 @@ private fun ModuleTransferDialog(
                     },
                     report = report,
                     clipboardLabel = if (checkingForUpdate) {
-                        "Jester Mods add-on update check diagnostics"
+                        "VOIDMOD1 add-on update check diagnostics"
                     } else {
-                        "Jester Mods add-on transfer diagnostics"
+                        "VOIDMOD1 add-on transfer diagnostics"
                     },
                     accent = AccentBlue
                 )
@@ -4119,7 +4119,7 @@ private fun GameInstallDialog(
     var diagnosticsExpanded by rememberSaveable(state.packageName) { mutableStateOf(false) }
     val report = remember(state) {
         buildString {
-            appendLine("Jester Mods game companion installer diagnostics")
+            appendLine("VOIDMOD1 game companion installer diagnostics")
             appendLine("Stage: ${gameInstallStageLabel(state.stage)}")
             if (state.title.isNotBlank()) appendLine("Game: ${state.title}")
             if (state.packageName.isNotBlank()) appendLine("Package: ${state.packageName}")
@@ -4228,7 +4228,7 @@ private fun GameInstallDialog(
                         if (state.stage == GameInstallStage.WAITING_FOR_ANDROID) {
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                "Jester Mods will verify the installed build when you return.",
+                                "VOIDMOD1 will verify the installed build when you return.",
                                 color = Accent.copy(alpha = 0.9f),
                                 style = MaterialTheme.typography.bodySmall
                             )
@@ -4242,7 +4242,7 @@ private fun GameInstallDialog(
                         onToggle = { diagnosticsExpanded = !diagnosticsExpanded },
                         summary = "${state.diagnostics.size} installer events captured",
                         report = report,
-                        clipboardLabel = "Jester Mods companion installer diagnostics"
+                        clipboardLabel = "VOIDMOD1 companion installer diagnostics"
                     )
                 }
 
@@ -4325,7 +4325,7 @@ private fun PackageSetupDialog(
     var diagnosticsExpanded by rememberSaveable(state.packageName) { mutableStateOf(false) }
     val report = remember(state) {
         buildString {
-            appendLine("Jester Mods $packageLabel setup diagnostics")
+            appendLine("VOIDMOD1 $packageLabel setup diagnostics")
             appendLine("Stage: ${secureTransferStageLabel(state.stage)}")
             if (state.title.isNotBlank()) appendLine("Game: ${state.title}")
             if (state.packageName.isNotBlank()) appendLine("Package: ${state.packageName}")
@@ -4463,7 +4463,7 @@ private fun PackageSetupDialog(
                     if (state.stage == SecureTransferStage.WAITING_FOR_ANDROID) {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            "Android owns the current confirmation. Jester Mods will verify the result when you return.",
+                            "Android owns the current confirmation. VOIDMOD1 will verify the result when you return.",
                             color = Accent.copy(alpha = 0.9f),
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -4477,7 +4477,7 @@ private fun PackageSetupDialog(
                     onToggle = { diagnosticsExpanded = !diagnosticsExpanded },
                     summary = "${state.diagnostics.size} setup events captured",
                     report = report,
-                    clipboardLabel = "Jester Mods $packageLabel setup diagnostics",
+                    clipboardLabel = "VOIDMOD1 $packageLabel setup diagnostics",
                     accent = accent
                 )
             }
@@ -4737,7 +4737,7 @@ private fun InstallerDeterminateProgress(
 @Composable
 private fun InstallerIndeterminateProgress(
     color: Color,
-    message: String = "Complete Android's secure prompt. Jester Mods will verify the result when you return.",
+    message: String = "Complete Android's secure prompt. VOIDMOD1 will verify the result when you return.",
     contentDescription: String = "Android installation in progress"
 ) {
     LinearProgressIndicator(
@@ -4902,7 +4902,7 @@ private fun InstalledModuleUpdatesDialog(
     }
     val report = remember(updates, state) {
         buildString {
-            appendLine("Jester Mods add-on update diagnostics")
+            appendLine("VOIDMOD1 add-on update diagnostics")
             appendLine("Stage: ${installedModuleUpdateStageLabel(state, installedCount, count)}")
             appendLine("Updates: $count")
             appendLine("Installed: $installedCount")
@@ -5017,7 +5017,7 @@ private fun InstalledModuleUpdatesDialog(
                 item {
                     Text(
                         when {
-                            state.inProgress -> "Keep Jester Mods open. Signed packages are downloaded, verified, and installed one at a time."
+                            state.inProgress -> "Keep VOIDMOD1 open. Signed packages are downloaded, verified, and installed one at a time."
                             installedCount == count -> "Everything finished successfully. You can close this window and return to your library."
                             failedCount > 0 -> "Successful updates are already installed. Retry only the add-ons that need attention, or finish the rest together."
                             count == 1 -> "Install the verified release here now, open its details first, or choose Later and update whenever you are ready."
@@ -5109,7 +5109,7 @@ private fun InstalledModuleUpdatesDialog(
                         onToggle = { diagnosticsExpanded = !diagnosticsExpanded },
                         summary = "$count add-on update ${if (count == 1) "record" else "records"}",
                         report = report,
-                        clipboardLabel = "Jester Mods add-on update diagnostics",
+                        clipboardLabel = "VOIDMOD1 add-on update diagnostics",
                         accent = AccentBlue
                     )
                 }
@@ -5507,9 +5507,9 @@ private fun SecureTransferProgressPanel(
             SecureTransferStage.WAITING_FOR_ANDROID -> InstallerIndeterminateProgress(
                 color = stageAccent,
                 message = if (stage == SecureTransferStage.WAITING_FOR_ANDROID) {
-                    "Complete Android's secure prompt. Jester Mods will verify the result when you return."
+                    "Complete Android's secure prompt. VOIDMOD1 will verify the result when you return."
                 } else {
-                    "The verified files are being activated atomically. Keep Jester Mods open."
+                    "The verified files are being activated atomically. Keep VOIDMOD1 open."
                 },
                 contentDescription = if (stage == SecureTransferStage.WAITING_FOR_ANDROID) {
                     "Android installation in progress"
@@ -6358,7 +6358,7 @@ private fun ModuleDownloadScreen(
                     }
                     listing.status == ModuleInstallStatus.UNSUPPORTED_ABI -> {
                         Text("This device version isn't supported", color = Danger, fontWeight = FontWeight.SemiBold)
-                        Text("The installed game architecture does not match the available Jester Mods add-on.", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("The installed game architecture does not match the available VOIDMOD1 add-on.", color = Muted, style = MaterialTheme.typography.bodySmall)
                     }
                     update.inProgress -> {
                         Text(update.headline ?: "Downloading add-on", color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -6380,7 +6380,7 @@ private fun ModuleDownloadScreen(
                     }
                     else -> {
                         Text("Ready to $action", color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("Jester Mods will download the add-on for this installed game.", color = Muted, style = MaterialTheme.typography.bodySmall)
+                        Text("VOIDMOD1 will download the add-on for this installed game.", color = Muted, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 if (update.changelog.isNotEmpty()) {
@@ -7752,14 +7752,14 @@ private fun LibraryHero(
             ) {
                 Image(
                     painter = painterResource(R.drawable.jester_moods_icon),
-                    contentDescription = "Jester Mods",
+                    contentDescription = "VOIDMOD1",
                     modifier = Modifier.size(40.dp)
                 )
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text("YOUR LIBRARY", color = Accent, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                Text("Jester Mods", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("VOIDMOD1", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             }
             if (showMetrics) {
                 OutlinedButton(
@@ -8377,7 +8377,7 @@ private fun ModuleScreen(
                         game.launchAction == LibraryLaunchAction.SHELL_AND_INSTALL ->
                             "Preserve the untouched game and install its game-branded exact-package shell."
                         else ->
-                            "Jester Mods will open the game with your features ready."
+                            "VOIDMOD1 will open the game with your features ready."
                     },
                     color = if (game.status in setOf(
                             LibraryGameStatus.RUNNING,
@@ -8516,7 +8516,7 @@ private fun ModuleScreen(
                         NonRootMethod.DIRECT_PATCH ->
                             "This removes the add-on and its retryable patch files from the launcher. The currently installed patched game and its data stay on Android; it is not uninstalled or restored to the Google Play version."
                         NonRootMethod.IDENTITY_SHELL ->
-                            "If the exact-package compatibility shell is installed, Android will ask you to uninstall it, including its local app data. Jester Mods removes the add-on and preserved shell files only after that succeeds. The original Play-signed game is not restored automatically."
+                            "If the exact-package compatibility shell is installed, Android will ask you to uninstall it, including its local app data. VOIDMOD1 removes the add-on and preserved shell files only after that succeeds. The original Play-signed game is not restored automatically."
                         NonRootMethod.INJECTION -> if (!BuildConfig.IS_ROOT_MODE) {
                             "This removes the add-on and the managed game copy from BlackBox, including its sandbox identity, settings, and save data. The original Android game and its data will not be changed."
                         } else {
@@ -8630,9 +8630,9 @@ private fun ModuleCompatibilityCard(
         game.launchAction == LibraryLaunchAction.UPDATE_PATCHED_INSTALL ->
             "Install the refreshed patch in place so the game contains this add-on version."
         game.launchAction == LibraryLaunchAction.RESTORE_OFFICIAL_FOR_SHELL ->
-            "Jester Mods detected its previous patch and will keep it out of the new shell. Restore the official Google Play game first."
+            "VOIDMOD1 detected its previous patch and will keep it out of the new shell. Restore the official Google Play game first."
         game.launchAction == LibraryLaunchAction.SHELL_AND_INSTALL ->
-            "Jester Mods will preserve the untouched game package and create a shell with its exact name and icon."
+            "VOIDMOD1 will preserve the untouched game package and create a shell with its exact name and icon."
         playStoreUpdateInProgress ->
             "The maintainer is updating this add-on for the newer game release shown by Google Play."
         else ->

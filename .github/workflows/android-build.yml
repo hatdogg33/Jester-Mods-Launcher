@@ -234,7 +234,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.info.outputs.VERSION }}
-          name: "Jester Mods Launcher v${{ steps.info.outputs.VERSION }}"
+          name: "VOIDMOD1 Launcher v${{ steps.info.outputs.VERSION }}"
           files: |
             artifacts/root/**/*.apk
             artifacts/nonroot/**/*.apk

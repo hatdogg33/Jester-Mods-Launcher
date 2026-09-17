@@ -185,7 +185,7 @@ class LauncherUpdateClient(private val context: Context) {
         if (isCancelled()) throw FastFileDownloader.DownloadCancelledException()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             require(context.packageManager.canRequestPackageInstalls()) {
-                "Allow Jester Mods to install app updates in Android settings"
+                "Allow VOIDMOD1 to install app updates in Android settings"
             }
         }
         // A PackageInstaller session has to stage the APK and then deliver a broadcast before

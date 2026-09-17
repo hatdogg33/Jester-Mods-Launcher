@@ -7,7 +7,7 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 function Write-Header([string]$Subtitle = '') {
     Clear-Host
     Write-Host '============================================================' -ForegroundColor DarkMagenta
-    Write-Host ' JESTER MODS - STANDALONE MENU MANAGER' -ForegroundColor Magenta
+    Write-Host ' VOIDMOD1 - STANDALONE MENU MANAGER' -ForegroundColor Magenta
     if ($Subtitle) { Write-Host " $Subtitle" -ForegroundColor Gray }
     Write-Host '============================================================' -ForegroundColor DarkMagenta
     Write-Host ''
