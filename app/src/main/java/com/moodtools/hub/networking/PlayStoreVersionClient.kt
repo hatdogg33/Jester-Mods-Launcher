@@ -228,8 +228,8 @@ internal fun parsePlayStoreVersionResult(
 
     val updateAvailable = if (body.has("updateAvailable") && !body.isNull("updateAvailable")) {
         body.getBoolean("updateAvailable")
-    } else if (body.has("available") && !body.isNull("available")) {
-        body.getBoolean("available")
+    } else if (body.has("update_available") && !body.isNull("update_available")) {
+        body.getBoolean("update_available")
     } else null
 
     val checkedAt = body.optLong("checkedAt", 0L).takeIf { it > 0L }
