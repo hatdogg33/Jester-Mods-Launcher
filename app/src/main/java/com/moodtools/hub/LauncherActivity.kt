@@ -1629,13 +1629,14 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             _launcherUpdateState.update { current ->
                 if (current.available) current.copy(screenOpen = true) else current
             }
+            refreshChangelog(force = true)
         }
     }
 
     fun openChangelog() {
         primeChangelogFromCache()
         _changelogState.value = _changelogState.value.copy(open = true)
-        refreshChangelog()
+        refreshChangelog(force = true)
     }
 
     fun closeChangelog() {
@@ -1721,8 +1722,8 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
         )
     }
 
-    fun refreshChangelog() {
-        if (_changelogState.value.loading) return
+    fun refreshChangelog(force: Boolean = false) {
+        if (!force && _changelogState.value.loading) return
         primeChangelogFromCache()
         _changelogState.value = _changelogState.value.copy(
             loading = true,
@@ -2323,6 +2324,7 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
         if (refreshGames && started && _startupState.value is LauncherStartupState.Ready) {
             viewModelScope.launch(Dispatchers.IO) {
                 refreshGames(refreshCatalog = true, forceGameScan = true)
+                refreshChangelog(force = true)
             }
         }
         reconcileReturnedGameInstaller()

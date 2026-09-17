@@ -1,6 +1,6 @@
 # Privacy and data inventory
 
-Jester Mods does not need a conventional username/password account. The
+VOIDMOD1 does not need a conventional username/password account. The
 launcher service processes the minimum identifiers needed to grant access,
 bind that access to an installation/device proof, prevent replay, and deliver
 the correct signed module files.
