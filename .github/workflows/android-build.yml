@@ -89,12 +89,9 @@ jobs:
           keyPassword=$KEY_PASSWORD
           EOF
 
-      - name: Prepare Gradle
-        run: chmod +x gradlew
-
       - name: Build ${{ matrix.flavor }} release APK
         run: |
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
+          gradle :app:assembleRelease --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
 
       - name: Verify APK output
         run: |
