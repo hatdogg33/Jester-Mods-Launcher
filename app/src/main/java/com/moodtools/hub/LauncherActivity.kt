@@ -1721,9 +1721,10 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
         viewModelScope.launch(Dispatchers.IO) {
             refreshGames(refreshCatalog = true)
             val launcherResult = runCatching { launcherUpdateClient.refreshChangelog() }
-            val launcherEntries = launcherResult.getOrElse {
+            val rawEntries = launcherResult.getOrElse {
                 launcherUpdateClient.loadCachedChangelog().orEmpty()
             }
+            val launcherEntries = ensureCurrentBuildChangelog(rawEntries)
             // Keep the global feed cheap even with thousands of modules. Full signed history is
             // loaded only when a user opens an actual update offer for that module.
             val moduleHistories = moduleChangelogSummaries()
@@ -1743,10 +1744,36 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
         val current = _changelogState.value
         val cachedLauncher = launcherUpdateClient.loadCachedChangelog().orEmpty()
         val cachedModules = moduleChangelogSummaries()
+        val launcherEntries = ensureCurrentBuildChangelog(cachedLauncher.ifEmpty { current.launcherEntries })
         _changelogState.value = current.copy(
-            launcherEntries = cachedLauncher.ifEmpty { current.launcherEntries },
+            launcherEntries = launcherEntries,
             moduleHistories = cachedModules.ifEmpty { current.moduleHistories }
         )
+    }
+
+    private fun ensureCurrentBuildChangelog(entries: List<LauncherChangelogEntry>): List<LauncherChangelogEntry> {
+        val installedBuild = launcherUpdateClient.installedBuild()
+        val currentBuildEntry = LauncherChangelogEntry(
+            build = installedBuild,
+            version = "v${com.moodtools.hub.BuildConfig.VERSION_NAME}",
+            notes = "• Linkvertise 24-hour web unlock integration\n• Modular launcher stability and changelog tracking improvements\n• Game hub UI and update optimizations",
+            publishedAtEpochSeconds = System.currentTimeMillis() / 1_000L
+        )
+        if (entries.isEmpty()) {
+            return listOf(currentBuildEntry)
+        }
+        val existingIndex = entries.indexOfFirst { it.build == installedBuild }
+        val updatedEntries = if (existingIndex >= 0) {
+            entries.toMutableList().apply {
+                this[existingIndex] = entries[existingIndex].copy(
+                    notes = if (entries[existingIndex].notes.isNotBlank()) entries[existingIndex].notes else currentBuildEntry.notes
+                )
+            }
+        } else {
+            listOf(currentBuildEntry) + entries
+        }
+        return updatedEntries.distinctBy { it.build }
+            .sortedWith(compareByDescending<LauncherChangelogEntry> { it.publishedAtEpochSeconds }.thenByDescending { it.build })
     }
 
     private fun moduleChangelogSummaries() = _availableModules.value.map { listing ->
