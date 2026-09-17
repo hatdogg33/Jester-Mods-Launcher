@@ -89,9 +89,12 @@ jobs:
           keyPassword=$KEY_PASSWORD
           EOF
 
+      - name: Prepare Gradle
+        run: chmod +x gradlew
+
       - name: Build ${{ matrix.flavor }} release APK
         run: |
-          gradle :app:assembleRelease --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace -PtrustedReleaseSignerSha256="$RELEASE_SIGNER_SHA256"
 
       - name: Verify APK output
         run: |
@@ -122,8 +125,8 @@ jobs:
       - name: Set version info
         id: version
         run: |
-          VERSION=$(grep -o 'versionName\s*=\s*"[^"]*"' app/build.gradle | sed 's/.*versionName\s*=\s*"\([^"]*\)".*/\1/')
-          VERSION_CODE=$(grep -o 'versionCode\s*=\s*[0-9]*' app/build.gradle | sed 's/.*versionCode\s*=\s*//')
+          VERSION=$(grep '^launcherVersionName=' gradle.properties | cut -d'=' -f2)
+          VERSION_CODE=$(grep '^launcherVersionCode=' gradle.properties | cut -d'=' -f2)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
 
