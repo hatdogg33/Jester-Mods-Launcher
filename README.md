@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="app/src/main/res/drawable/menu_icon.png" alt="Jester Mods emblem" width="132">
+  <img src="app/src/main/res/drawable/menu_icon.png" alt="VOIDMOD1 emblem" width="132">
 
-  # Jester Mods Launcher
+  # VOIDMOD1 Launcher
 
   **Transparency source for the official signed Android game-mod launcher.**
 
