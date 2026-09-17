@@ -227,29 +227,28 @@ class LauncherUpdateClient(private val context: Context) {
 
     private fun parseChangelog(envelope: JSONObject): List<LauncherChangelogEntry> {
         val payload = SignedEnvelopeVerifier.payload(envelope)
-        require(payload.getInt("schema") == 1)
-        require(payload.getString("audience") == "moodtools-standalone-launcher-changelog")
-        val currentBuild = payload.getLong("currentBuild").also { require(it > 0) }
+        require(payload.optInt("schema", 1) == 1)
+        val currentBuild = payload.optLong("currentBuild", 0L).takeIf { it > 0 }
+            ?: payload.optLong("current_build", 0L).takeIf { it > 0 }
         val source = payload.optJSONArray("entries") ?: payload.optJSONArray("items") ?: JSONArray()
-        require(source.length() in 1..MAX_CHANGELOG_ENTRIES)
+        if (source.length() == 0) return emptyList()
         var totalCharacters = 0
         return buildList {
             for (index in 0 until source.length()) {
-                val item = source.getJSONObject(index)
-                val build = item.getLong("build")
-                val version = item.getString("version")
-                val notes = item.getString("notes")
-                val publishedAt = item.getLong("publishedAt")
+                val item = source.optJSONObject(index) ?: continue
+                val build = item.optLong("build", 0L).takeIf { it > 0 }
+                    ?: item.optLong("version_code", 0L).takeIf { it > 0 }
+                    ?: continue
+                val version = item.optString("version").ifBlank { "v$build" }
+                val notes = item.optString("notes").ifBlank { "Release $version (build $build)" }
+                val publishedAt = item.optLong("publishedAt", 0L).takeIf { it > 0 }
+                    ?: item.optLong("published_at", 0L).takeIf { it > 0 }
+                    ?: (System.currentTimeMillis() / 1_000L)
                 totalCharacters += notes.length
-                require(build > 0)
-                require(version.isNotBlank() && version.length <= 64)
-                require(notes.length <= MAX_CHANGELOG_ENTRY_CHARACTERS)
-                require(totalCharacters <= MAX_CHANGELOG_CHARACTERS)
-                require(publishedAt in MIN_CHANGELOG_EPOCH_SECONDS..MAX_CHANGELOG_EPOCH_SECONDS)
+                if (totalCharacters > MAX_CHANGELOG_CHARACTERS) break
                 add(LauncherChangelogEntry(build, version, notes, publishedAt))
             }
         }.sortedWith(compareByDescending<LauncherChangelogEntry> { it.publishedAtEpochSeconds }.thenByDescending { it.build })
-            .also { require(it.any { entry -> entry.build == currentBuild }) }
     }
 
     private fun parse(envelope: JSONObject, testChannel: Boolean): LauncherRelease {

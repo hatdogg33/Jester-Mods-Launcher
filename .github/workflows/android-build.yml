@@ -208,13 +208,18 @@ jobs:
           ROOT_SIZE: ${{ steps.info.outputs.ROOT_SIZE }}
           NONROOT_SIZE: ${{ steps.info.outputs.NONROOT_SIZE }}
         run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/"/\\"/g' | cut -c1-300)
+          NOTES="Release ${VERSION} (build ${VERSION_CODE})"
+          if [ -n "$COMMIT_MSG" ]; then
+            NOTES="Release ${VERSION} (build ${VERSION_CODE}) - ${COMMIT_MSG}"
+          fi
           curl -X POST "${ADMIN_API_URL}/api/_admin/releases" \
             -H "Authorization: Bearer ${ADMIN_API_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{
               \"build\": ${VERSION_CODE},
               \"version\": \"${VERSION}\",
-              \"notes\": \"Release ${VERSION} (build ${VERSION_CODE})\",
+              \"notes\": \"${NOTES}\",
               \"root_path\": \"/api/launcher-download/${VERSION_CODE}/root.apk\",
               \"root_sha256\": \"${ROOT_SHA256}\",
               \"root_size_bytes\": ${ROOT_SIZE},

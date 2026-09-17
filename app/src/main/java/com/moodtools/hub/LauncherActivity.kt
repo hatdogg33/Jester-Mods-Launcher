@@ -1769,18 +1769,34 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
             notes = "• Linkvertise 24-hour web unlock integration\n• Modular launcher stability and changelog tracking improvements\n• Game hub UI and update optimizations",
             publishedAtEpochSeconds = System.currentTimeMillis() / 1_000L
         )
-        if (entries.isEmpty()) {
+        val release = currentLauncherRelease
+        val baseList = entries.toMutableList()
+        if (release != null && release.build > installedBuild && baseList.none { it.build == release.build }) {
+            baseList.add(
+                0,
+                LauncherChangelogEntry(
+                    build = release.build,
+                    version = release.version,
+                    notes = release.notes?.takeIf { it.isNotBlank() } ?: "Release ${release.version} (build ${release.build})",
+                    publishedAtEpochSeconds = System.currentTimeMillis() / 1_000L
+                )
+            )
+        }
+        if (baseList.isEmpty()) {
             return listOf(currentBuildEntry)
         }
-        val existingIndex = entries.indexOfFirst { it.build == installedBuild }
+        val existingIndex = baseList.indexOfFirst { it.build == installedBuild }
         val updatedEntries = if (existingIndex >= 0) {
-            entries.toMutableList().apply {
-                this[existingIndex] = entries[existingIndex].copy(
-                    notes = if (entries[existingIndex].notes.isNotBlank()) entries[existingIndex].notes else currentBuildEntry.notes
+            val existing = baseList[existingIndex]
+            val isGenericNotes = existing.notes.isBlank() ||
+                (existing.notes.startsWith("Release ") && existing.notes.contains("(build "))
+            baseList.apply {
+                this[existingIndex] = existing.copy(
+                    notes = if (!isGenericNotes) existing.notes else currentBuildEntry.notes
                 )
             }
         } else {
-            listOf(currentBuildEntry) + entries
+            listOf(currentBuildEntry) + baseList
         }
         return updatedEntries.distinctBy { it.build }
             .sortedWith(compareByDescending<LauncherChangelogEntry> { it.publishedAtEpochSeconds }.thenByDescending { it.build })
@@ -2430,6 +2446,25 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                     )
                 )
             }
+        val combinedChangelog = ensureCurrentBuildChangelog(history).toMutableList()
+        if (combinedChangelog.none { it.build == release.build }) {
+            combinedChangelog.add(
+                0,
+                LauncherChangelogEntry(
+                    build = release.build,
+                    version = release.version,
+                    notes = release.notes?.takeIf { it.isNotBlank() } ?: "Release ${release.version} (build ${release.build})",
+                    publishedAtEpochSeconds = System.currentTimeMillis() / 1_000L
+                )
+            )
+        }
+        _changelogState.update { current ->
+            current.copy(
+                launcherEntries = combinedChangelog.distinctBy { it.build }.sortedWith(
+                    compareByDescending<LauncherChangelogEntry> { it.publishedAtEpochSeconds }.thenByDescending { it.build }
+                )
+            )
+        }
         val readyHeadline = if (downloaded) {
             "Update ready to install"
         } else {

@@ -182,7 +182,7 @@ internal fun parsePlayStoreVersionResults(
     expectedPackageNames: Set<String>,
     body: JSONObject
 ): Map<String, PlayStoreVersionResult> {
-    require(body.optBoolean("ok", false) && body.optInt("schema") == 1) {
+    require(body.optBoolean("ok", false) && body.optInt("schema", 1) == 1) {
         "Invalid Play Store batch response"
     }
     val results = body.optJSONArray("results") ?: body.optJSONArray("versions") ?: JSONArray()
@@ -190,7 +190,9 @@ internal fun parsePlayStoreVersionResults(
     return buildMap {
         for (index in 0 until results.length()) {
             val item = results.getJSONObject(index)
-            val packageName = item.optString("packageName")
+            val packageName = item.optString("packageName").ifEmpty {
+                item.optString("package_name")
+            }
             require(packageName in expectedPackageNames && !containsKey(packageName))
             put(packageName, requireNotNull(parsePlayStoreVersionResult(packageName, item)))
         }
@@ -201,25 +203,41 @@ internal fun parsePlayStoreVersionResult(
     expectedPackageName: String,
     body: JSONObject
 ): PlayStoreVersionResult? {
-    if (!body.optBoolean("ok", false)) return null
-    val responsePackage = body.optString("packageName")
+    if (body.has("ok") && !body.optBoolean("ok", false)) return null
+    val responsePackage = body.optString("packageName").ifEmpty {
+        body.optString("package_name").ifEmpty { expectedPackageName }
+    }
     val version = if (body.has("version") && !body.isNull("version")) {
         body.getString("version").trim().takeIf(String::isNotEmpty)
     } else null
+
     val versionCode = if (body.has("versionCode") && !body.isNull("versionCode")) {
         body.getLong("versionCode").takeIf { it > 0L } ?: return null
+    } else if (body.has("version_code") && !body.isNull("version_code")) {
+        body.getLong("version_code").takeIf { it > 0L } ?: return null
     } else null
-    val listingUpdatedAt = body.optLong("listingUpdatedAt", 0L).takeIf { it > 0L }
+
+    val listingUpdatedAt = (body.optLong("listingUpdatedAt", 0L).takeIf { it > 0L }
+        ?: body.optLong("listing_updated_at", 0L).takeIf { it > 0L })
+
     val updateAvailable = if (body.has("updateAvailable") && !body.isNull("updateAvailable")) {
         body.getBoolean("updateAvailable")
+    } else if (body.has("available") && !body.isNull("available")) {
+        body.getBoolean("available")
     } else null
-    val checkedAt = body.optLong("checkedAt", 0L)
+
+    val checkedAt = body.optLong("checkedAt", 0L).takeIf { it > 0L }
+        ?: body.optLong("observedAt", 0L).takeIf { it > 0L }
+        ?: body.optLong("observed_at", 0L).takeIf { it > 0L }
+        ?: (System.currentTimeMillis() / 1_000L)
+
     if (responsePackage != expectedPackageName ||
         (version != null && !VERSION_PATTERN.matches(version)) ||
         (version == null && listingUpdatedAt == null) || checkedAt <= 0L
     ) {
         return null
     }
+
     return PlayStoreVersionResult(
         packageName = responsePackage,
         version = version,

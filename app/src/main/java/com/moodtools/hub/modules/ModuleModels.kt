@@ -285,18 +285,13 @@ data class PlayStoreVersionStatus(
     // The server hint is based on the published catalog, which can lag a locally staged module.
     // Re-evaluate an exact Google Play version against the module the launcher actually resolved.
     fun isSupportedBy(module: ModuleConfig): Boolean? {
-        if (updateAvailable == true && latestVersionCode != null && module.supportedVersionCodes.isNotEmpty() && latestVersionCode !in module.supportedVersionCodes) {
-            val latestMatching = latestVersion?.let { com.moodtools.hub.discovery.GameScanner.isMatchingVersion(it, module.supportedVersions) } ?: false
-            if (!latestMatching) return false
-        }
+        if (updateAvailable == true && latestVersionCode != null) return false
         if (latestVersion != null && !com.moodtools.hub.discovery.GameScanner.isMatchingVersion(latestVersion, module.supportedVersions)) return false
         if (module.supportedVersionCodes.isEmpty()) {
             return latestVersion?.let { true } ?: updateAvailable?.not()
         }
-        val versionCode = versionCodeFor(module)
-        if (versionCode != null && versionCode !in module.supportedVersionCodes && latestVersion != null && !com.moodtools.hub.discovery.GameScanner.isMatchingVersion(latestVersion, module.supportedVersions)) {
-            return false
-        }
+        val versionCode = versionCodeFor(module) ?: return null
+        if (versionCode !in module.supportedVersionCodes) return false
         return true
     }
 }
@@ -365,7 +360,7 @@ data class ModuleListing(
     val configuredGameSourceAvailable: Boolean
         get() = when (catalog.installSource) {
             is GameInstallSource.DirectDownload -> true
-            is GameInstallSource.PlayStore -> true
+            is GameInstallSource.PlayStore -> playStoreListingDetected
         }
 
     val playStoreUpdateInProgress: Boolean
