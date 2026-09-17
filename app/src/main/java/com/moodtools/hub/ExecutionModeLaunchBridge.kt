@@ -174,6 +174,30 @@ object ExecutionModeLaunchBridge {
             )
             return false
         }
+        if (game.module.effectiveNonRootMethod == NonRootMethod.IDENTITY_SHELL) {
+            if (android.os.Build.VERSION.SDK_INT < 26) {
+                onProgress?.invoke(
+                    "Launch failed",
+                    "The companion shell template requires Android 8.0 (API 26) or higher."
+                )
+                return false
+            }
+            if (game.versionCode > 2100000000L || game.versionCode < 1L) {
+                onProgress?.invoke(
+                    "Launch failed",
+                    "The game version code (${game.versionCode}) is incompatible with the companion shell template. It must be between 1 and 2,100,000,000."
+                )
+                return false
+            }
+            val templateSupportedAbis = setOf("arm64-v8a", "armeabi-v7a")
+            if (game.abi !in templateSupportedAbis) {
+                onProgress?.invoke(
+                    "Launch failed",
+                    "The companion shell template does not support the game's architecture (${game.abi}). Only arm64-v8a and armeabi-v7a are supported."
+                )
+                return false
+            }
+        }
         onProgress?.invoke("Verifying add-on", "Checking the signed add-on before launch.")
         runCatching {
             val directory = File(context.filesDir, "menus/${game.packageName}")

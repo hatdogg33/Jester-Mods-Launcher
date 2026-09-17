@@ -4408,11 +4408,13 @@ class LauncherViewModel(application: android.app.Application) : AndroidViewModel
                 )
             }
         }
+        val bootstrap = BuildConfig.VERSION_CODE
         fun downloadWithFreshAuthorization() = client.applyStandalone(
             request.packageName,
             slug,
             abi,
-            accessManager.authorizeModule(request.packageName, slug, abi),
+            accessManager.authorizeModule(request.packageName, slug, abi, bootstrap = bootstrap),
+            bootstrap = bootstrap,
             onProgress = publishProgress,
             onStage = { clientStage ->
                 val stage = when (clientStage) {

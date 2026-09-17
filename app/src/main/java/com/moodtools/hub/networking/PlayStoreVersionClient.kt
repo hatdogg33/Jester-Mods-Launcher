@@ -200,6 +200,8 @@ internal fun parsePlayStoreVersionResults(
                         put(packageName, parsed)
                     }
                 }
+            } else {
+                throw IllegalArgumentException("Unexpected package in batch response: $packageName")
             }
         }
     }
