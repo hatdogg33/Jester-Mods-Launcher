@@ -186,15 +186,21 @@ internal fun parsePlayStoreVersionResults(
         "Invalid Play Store batch response"
     }
     val results = body.optJSONArray("results") ?: body.optJSONArray("versions") ?: JSONArray()
-    require(results.length() <= expectedPackageNames.size)
     return buildMap {
         for (index in 0 until results.length()) {
             val item = results.getJSONObject(index)
             val packageName = item.optString("packageName").ifEmpty {
                 item.optString("package_name")
             }
-            require(packageName in expectedPackageNames && !containsKey(packageName))
-            put(packageName, requireNotNull(parsePlayStoreVersionResult(packageName, item)))
+            if (packageName in expectedPackageNames) {
+                val parsed = parsePlayStoreVersionResult(packageName, item)
+                if (parsed != null) {
+                    val existing = get(packageName)
+                    if (existing == null || (parsed.versionCode ?: 0L) > (existing.versionCode ?: 0L)) {
+                        put(packageName, parsed)
+                    }
+                }
+            }
         }
     }
 }
