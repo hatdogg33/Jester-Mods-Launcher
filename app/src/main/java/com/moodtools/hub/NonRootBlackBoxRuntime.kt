@@ -174,8 +174,20 @@ object NonRootBlackBoxRuntime {
     }
 
     private fun launchApk(context: Context, core: BlackBoxCore, packageName: String, userId: Int): Boolean {
-        val intent = BlackBoxCore.getBPackageManager().getLaunchIntentForPackage(packageName, userId)
-            ?.withSelectedMenuLanguage(context) ?: return false
+        val virtualIntent = BlackBoxCore.getBPackageManager()
+            .getLaunchIntentForPackage(packageName, userId)
+        // Some current Android packages resolve their launcher activity in the host PackageManager
+        // but not in BlackBox's virtual PackageManager. BlackBox uses this same host fallback
+        // internally after binder failures; use it here when its virtual resolver returns no activity.
+        val intent = (virtualIntent ?: context.packageManager.getLaunchIntentForPackage(packageName))
+            ?.withSelectedMenuLanguage(context)
+            ?: run {
+                Log.e(TAG, "No launch activity found for $packageName in either package manager")
+                return false
+            }
+        if (virtualIntent == null) {
+            Log.w(TAG, "Using host launch-intent fallback for $packageName user=$userId")
+        }
         core.startActivity(intent, userId)
         return true
     }
