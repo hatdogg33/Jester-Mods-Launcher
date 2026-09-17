@@ -30,6 +30,8 @@ class GameScanner(private val context: Context) {
                     packageInfo.versionCode.toLong()
                 }
                 val abi = shellIdentity?.abi ?: detectInstalledAbi(info)
+                val isVersionMatch = isMatchingVersion(versionName, module.supportedVersions)
+                val isBuildMatch = module.supportedVersionCodes.isEmpty() || versionCode in module.supportedVersionCodes || isVersionMatch
                 InstalledGame(
                     packageName = module.packageName,
                     versionName = versionName,
@@ -37,8 +39,7 @@ class GameScanner(private val context: Context) {
                     label = shellIdentity?.label ?: packageManager.getApplicationLabel(info).toString(),
                     icon = packageManager.getApplicationIcon(info),
                     module = module,
-                    versionSupported = versionName in module.supportedVersions &&
-                        (module.supportedVersionCodes.isEmpty() || versionCode in module.supportedVersionCodes),
+                    versionSupported = isVersionMatch || (module.supportedVersions.isEmpty() && isBuildMatch),
                     abi = abi,
                     abiSupported = module.supportedAbis.contains(abi)
                 )
@@ -107,6 +108,33 @@ class GameScanner(private val context: Context) {
         const val ABI_UNKNOWN = "unknown"
         private val KNOWN_ABIS = setOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         private const val IDENTITY_SHELL_METADATA = "com.moodtools.identity_shell"
+
+        fun isMatchingVersion(installedVersionName: String, supportedVersions: Set<String>): Boolean {
+            if (supportedVersions.isEmpty() || supportedVersions.contains("*")) return true
+            val rawInstalled = installedVersionName.trim()
+            val installedNormalized = normalizeVersionString(installedVersionName)
+            for (supported in supportedVersions) {
+                val supportedRaw = supported.trim()
+                val supportedNormalized = normalizeVersionString(supported)
+                if (rawInstalled.equals(supportedRaw, ignoreCase = true)) return true
+                if (installedNormalized.isNotBlank() && supportedNormalized.isNotBlank()) {
+                    if (installedNormalized.equals(supportedNormalized, ignoreCase = true)) return true
+                    if (installedNormalized.startsWith(supportedNormalized, ignoreCase = true) ||
+                        supportedNormalized.startsWith(installedNormalized, ignoreCase = true)) return true
+                }
+            }
+            return false
+        }
+
+        private fun normalizeVersionString(version: String): String {
+            return version.trim()
+                .removePrefix("v")
+                .removePrefix("V")
+                .substringBefore(" ")
+                .substringBefore("-")
+                .substringBefore("_")
+                .trim()
+        }
     }
 
     private data class ShellIdentity(

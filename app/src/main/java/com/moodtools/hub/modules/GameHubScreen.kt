@@ -6280,19 +6280,14 @@ private fun ModuleDownloadScreen(
                         is GameInstallSource.PlayStore -> {
                             Text(
                                 when {
-                                    playStoreStatus == null -> "Google Play listing not detected"
                                     game == null -> "Available from Google Play"
-                                    else -> "Update from Google Play"
+                                    else -> "Google Play Store"
                                 },
-                                color = if (playStoreStatus == null) Muted else Color.White,
+                                color = Color.White,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                if (playStoreStatus == null) {
-                                    "The launcher couldn't confirm this package on Google Play, so the store action is hidden."
-                                } else {
-                                    "Google Play handles the original game installation and updates."
-                                },
+                                "Google Play handles the original game installation and updates.",
                                 color = Muted,
                                 style = MaterialTheme.typography.bodySmall
                             )
@@ -6311,7 +6306,7 @@ private fun ModuleDownloadScreen(
                 if (listing.configuredGameSourceAvailable) {
                     Button(
                         onClick = onAcquireGame,
-                        enabled = !busy && !gameInstall.completed && directUpdateIsNewer,
+                        enabled = !busy && !gameInstall.completed && (listing.catalog.installSource is GameInstallSource.PlayStore || directUpdateIsNewer),
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(vertical = 14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Ink)
@@ -6321,7 +6316,7 @@ private fun ModuleDownloadScreen(
                                 companionWindowActive && (gameInstall.inProgress || gameInstall.installing) -> "Installer window active"
                                 companionWindowActive && gameInstall.failed -> "Use installer window"
                                 listing.catalog.installSource is GameInstallSource.PlayStore && game == null -> "Get from Google Play"
-                                listing.catalog.installSource is GameInstallSource.PlayStore -> "Update in Google Play"
+                                listing.catalog.installSource is GameInstallSource.PlayStore -> "Open Google Play Store"
                                 game == null -> "Download game"
                                 else -> "Download game update"
                             },
@@ -6329,7 +6324,7 @@ private fun ModuleDownloadScreen(
                         )
                     }
                 }
-                if (directSource != null && listing.playStoreListingDetected) {
+                if (directSource != null) {
                     Spacer(Modifier.height(10.dp))
                     OutlinedButton(
                         onClick = onOpenGameStore,
