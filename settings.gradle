@@ -18,5 +18,9 @@ dependencyResolutionManagement {
 rootProject.name = 'VOIDMOD1'
 include ':app'
 include ':Bcore'
+include ':black-reflection'
+include ':compiler'
 
 project(':Bcore').projectDir = file('third_party/BlackBox/Bcore')
+project(':black-reflection').projectDir = file('third_party/BlackBox/black-reflection')
+project(':compiler').projectDir = file('third_party/BlackBox/compiler')

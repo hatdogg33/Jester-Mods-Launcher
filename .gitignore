@@ -99,5 +99,6 @@ cloudflare/
 admin-token.txt
 wrangler.toml
 wrangler.jsonc
+.wrangler/
 .env
 *.local
