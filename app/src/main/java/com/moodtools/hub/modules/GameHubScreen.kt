@@ -8208,43 +8208,16 @@ private fun ModuleScreen(
                     color = Muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                if (update.headline != null || update.inProgress) {
-                    Spacer(Modifier.height(18.dp))
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
-                    Spacer(Modifier.height(16.dp))
-                    if (update.inProgress) {
-                        DownloadProgressBar(
-                            downloadedBytes = update.downloadedBytes,
-                            totalBytes = update.totalBytes,
-                            waiting = true,
-                            color = Accent
-                        )
-                        Spacer(Modifier.height(12.dp))
-                    }
-                    Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
-                            update.headline?.let {
-                                Text(
-                                    it,
-                                    color = if (update.failed) Danger else Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            update.detail?.let {
-                                Spacer(Modifier.height(3.dp))
-                                Text(it, color = Muted, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-                if (update.totalBytes > 0L) {
-                    Spacer(Modifier.height(12.dp))
-                    DownloadInfoRow("Download size", formatDownloadSize(update.totalBytes))
-                }
-                if (update.changelog.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    ModuleUpdateChangelog(update.changelog)
-                }
                 Spacer(Modifier.height(18.dp))
                 update.verificationUrl?.let { verificationUrl ->
+                    update.headline?.let {
+                        Text(it, color = Color.White, fontWeight = FontWeight.SemiBold)
+                        update.detail?.let { detail ->
+                            Spacer(Modifier.height(3.dp))
+                            Text(detail, color = Muted, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     Button(
                         onClick = {
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
